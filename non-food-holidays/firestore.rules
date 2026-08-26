@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Open read/write for both apps to talk to each other with no login system.
+    // Good enough for an internal team tool on a private link.
+    // Tighten this later (e.g. Firebase Auth + custom claims) if it needs to be public-safe.
+    match /meta/{docId} {
+      allow read, write: if true;
+    }
+    match /requests/{docId} {
+      allow read, write: if true;
+    }
+  }
+}
