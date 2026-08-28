@@ -96,9 +96,19 @@ function MonthJumpControls({ year, month, onChange }){
   );
 }
 
-function CalendarGrid({ year, month, approvedByDate }){
+function CalendarGrid({ year, month, approvedByDate, requests = [] }){
   const weeks = buildMonthMatrix(year, month);
   const today = toISO(new Date());
+
+  const pendingByDate = {};
+  requests.filter(r => r && r.status === 'pending').forEach(r => {
+    if (!Array.isArray(r.dates)) return;
+    r.dates.forEach(iso => {
+      if (!pendingByDate[iso]) pendingByDate[iso] = [];
+      pendingByDate[iso].push({ ...r, status: 'pending' });
+    });
+  });
+
   return (
     <div className="rounded-xl overflow-hidden border border-emerald-800">
       <div className="grid grid-cols-7 bg-emerald-800 text-emerald-50 text-xs font-semibold">
@@ -106,7 +116,12 @@ function CalendarGrid({ year, month, approvedByDate }){
       </div>
       <div className="grid grid-cols-7">
         {weeks.flat().map((iso, idx) => {
-          const entries = iso ? (approvedByDate[iso] || []) : [];
+          const approved = iso ? (approvedByDate[iso] || []) : [];
+          const pending = iso ? (pendingByDate[iso] || []) : [];
+          const entries = [
+            ...approved.map(e => ({ ...e, status: 'approved' })),
+            ...pending
+          ];
           const isToday = iso === today;
           return (
             <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-900 p-1 align-top ${iso ? 'bg-emerald-950' : 'bg-emerald-900/30'}`}>
@@ -116,11 +131,22 @@ function CalendarGrid({ year, month, approvedByDate }){
                     {fromISO(iso).getDate()}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {entries.slice(0,3).map((e,i) => (
-                      <div key={i} title={e.name} className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate font-medium ${listChipClasses(e.list)}`}>
-                        {e.name}
-                      </div>
-                    ))}
+                    {entries.slice(0,3).map((e,i) => {
+                      const isPending = e.status === 'pending';
+                      return (
+                        <div
+                          key={i}
+                          title={`${e.name} — ${isPending ? 'Pending' : 'Approved'}`}
+                          className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate font-medium ${
+                            isPending
+                              ? 'bg-gray-400 text-gray-800 border border-gray-500'
+                              : listChipClasses(e.list)
+                          }`}
+                        >
+                          {e.name}
+                        </div>
+                      );
+                    })}
                     {entries.length > 3 && <div className="text-[9px] text-emerald-300">+{entries.length-3} more</div>}
                   </div>
                 </>
@@ -316,10 +342,11 @@ export default function App(){
               <h2 className="text-lg font-bold">{MONTH_NAMES[viewMonth]} {viewYear}</h2>
               <MonthJumpControls year={viewYear} month={viewMonth} onChange={(y,m)=>{setViewYear(y);setViewMonth(m);}} />
             </div>
-            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} />
+            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} requests={requests} />
             <div className="flex items-center gap-4 text-xs text-emerald-300">
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 border border-amber-500 inline-block"/> GM</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-black inline-block"/> George</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-400 border border-gray-500 inline-block"/> Pending</span>
             </div>
           </div>
         )}
