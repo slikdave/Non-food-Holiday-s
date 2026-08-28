@@ -456,13 +456,12 @@ export default function App(){
 
         alert(
           `HOLIDAY CONFLICT
-
-I'm sorry, ${active.name}, this date is unavailable because
+This date is unavailable because
 1. A ${active.list} colleague is already off
 2. A ${active.list} colleague has a pending request
 Only ONE ${active.list} colleague can be off or pending an approval on the same date.
 Pending requests reserve the date until they are approved, denied or cancelled.
-However a GM and George colleague can be off on the same date.`
+However a GM and George colleagues can be off on the same date.`
         );
 
         console.warn(

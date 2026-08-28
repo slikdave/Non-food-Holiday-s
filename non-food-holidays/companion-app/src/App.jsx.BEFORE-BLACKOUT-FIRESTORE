@@ -454,16 +454,79 @@ export default function App(){
 
         const datesText = conflicts.join(', ');
 
-        alert(
-          `HOLIDAY CONFLICT
+        (() => {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:99999;
+    padding:20px;
+  `;
 
-I'm sorry, ${active.name}, this date is unavailable because
-1. A ${active.list} colleague is already off
-2. A ${active.list} colleague has a pending request
-Only ONE ${active.list} colleague can be off or pending an approval on the same date.
-Pending requests reserve the date until they are approved, denied or cancelled.
-However a GM and George colleague can be off on the same date.`
-        );
+  const box = document.createElement('div');
+  box.style.cssText = `
+    background:white;
+    width:min(92vw,520px);
+    border-radius:14px;
+    padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+    font-family:Arial,sans-serif;
+    color:#111827;
+    line-height:1.45;
+  `;
+
+  box.innerHTML = `
+    <div style="
+      color:#dc2626;
+      font-weight:700;
+      text-decoration:underline;
+      font-size:inherit;
+      margin-bottom:14px;
+    ">HOLIDAY CONFLICT</div>
+
+    <div style="margin-bottom:10px;">
+      I'm sorry, ${active.name}, this date is unavailable because
+    </div>
+
+    <div>1. A ${active.list} colleague is already off</div>
+    <div>2. A ${active.list} colleague has a pending request</div>
+
+    <div style="margin-top:10px;">
+      Only ONE ${active.list} colleague can be off or pending an approval on the same date.
+    </div>
+
+    <div style="margin-top:8px;">
+      Pending requests reserve the date until they are approved, denied or cancelled.
+    </div>
+
+    <div style="margin-top:8px;">
+      However a GM and George colleague can be off on the same date.
+    </div>
+
+    <button
+      type="button"
+      style="
+        margin-top:18px;
+        width:100%;
+        padding:10px 14px;
+        border:0;
+        border-radius:8px;
+        background:#16a34a;
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+      "
+    >OK</button>
+  `;
+
+  box.querySelector('button').onclick = () => overlay.remove();
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+})();
 
         console.warn(
           'HOLIDAY CONFLICT:',
@@ -487,7 +550,8 @@ However a GM and George colleague can be off on the same date.`
         list: active.list,
         dates: requestedDates,
         status: 'pending',
-        manual: manualOverride,
+      sourceApp: 'companion',
+        
         createdAt: Date.now(),
         updatedAt: Date.now()
       });

@@ -455,14 +455,13 @@ export default function App(){
         const datesText = conflicts.join(', ');
 
         alert(
-          `HOLIDAY CONFLICT
-
-I'm sorry, ${active.name}, this date is unavailable because
-1. A ${active.list} colleague is already off
-2. A ${active.list} colleague has a pending request
-Only ONE ${active.list} colleague can be off or pending an approval on the same date.
-Pending requests reserve the date until they are approved, denied or cancelled.
-However a GM and George colleague can be off on the same date.`
+          `HOLIDAY CONFLICT\\n` +
+          `This date is unavailable because\\n` +
+          `1. A ${active.list} colleague is already off\\n` +
+          `2. A ${active.list} colleague has a pending request\\n` +
+          `Only ONE ${active.list} colleague can be off or pending an approval on the same date.\\n` +
+          `Pending requests reserve the date until they are approved, denied or cancelled.\\n` +
+          `However a GM and George colleagues can be off on the same date.`
         );
 
         console.warn(

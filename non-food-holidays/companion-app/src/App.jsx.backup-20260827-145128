@@ -391,25 +391,15 @@ export default function App(){
         group === 'george';
 
       /*
-       * PENDING and APPROVED requests both occupy the holiday slot.
-       *
-       * This is deliberate:
-       *
-       *   pending  = already requested, therefore slot is occupied
-       *   approved = approved, therefore slot is occupied
-       *   denied   = does not occupy slot
-       *   cancelled = does not occupy slot
-       *
-       * Do NOT exclude the current user here. If the same user
-       * already has a pending request for the same date, that is
-       * also treated as a duplicate/conflict.
+       * Pending AND approved requests occupy the slot.
+       * Cancelled/denied requests do not.
        */
       const activeRequests = requests.filter(r => {
         const status = normalise(r.status);
 
         return (
-          status === 'pending' ||
-          status === 'approved'
+          r.name !== active.name &&
+          (status === 'pending' || status === 'approved')
         );
       });
 
@@ -455,14 +445,11 @@ export default function App(){
         const datesText = conflicts.join(', ');
 
         alert(
-          `HOLIDAY CONFLICT
-
-I'm sorry, ${active.name}, this date is unavailable because
-1. A ${active.list} colleague is already off
-2. A ${active.list} colleague has a pending request
-Only ONE ${active.list} colleague can be off or pending an approval on the same date.
-Pending requests reserve the date until they are approved, denied or cancelled.
-However a GM and George colleague can be off on the same date.`
+          `HOLIDAY CONFLICT\n\n` +
+          `A ${active.list} colleague is already off on:\n` +
+          `${datesText}\n\n` +
+          `Only ONE ${active.list} colleague may be off on the same date.\n\n` +
+          `GM and George may both be off on the same date.`
         );
 
         console.warn(

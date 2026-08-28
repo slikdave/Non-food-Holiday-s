@@ -15,7 +15,7 @@ export function subscribeRoster(cb) {
 export async function saveRoster(next) {
   await setDoc(ROSTER_DOC, next);
 }
- 
+
 export function subscribeRequests(cb) {
   return onSnapshot(REQUESTS_COL, (snap) => {
     const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -40,51 +40,4 @@ export function readLocal(key, fallback) {
 }
 export function writeLocal(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
-}
-
-export function subscribeBlackouts(cb) {
-  const read = () => {
-    try {
-      cb(JSON.parse(localStorage.getItem('master_blackouts') || '[]'));
-    } catch {
-      cb([]);
-    }
-  };
-
-  read();
-
-  const onStorage = (e) => {
-    if (e.key === 'master_blackouts') read();
-  };
-
-  window.addEventListener('storage', onStorage);
-
-  return () => {
-    window.removeEventListener('storage', onStorage);
-  };
-}
-
-export async function createBlackout(data) {
-  const existing = JSON.parse(
-    localStorage.getItem('master_blackouts') || '[]'
-  );
-
-  const next = {
-    id: crypto.randomUUID(),
-    ...data
-  };
-
-  localStorage.setItem(
-    'master_blackouts',
-    JSON.stringify([...existing, next])
-  );
-
-  return next;
-}
-
-export async function deleteBlackout(id) {
-  const existing = JSON.parse(localStorage.getItem('master_blackouts') || '[]');
-  const next = existing.filter(x => x.id !== id);
-  localStorage.setItem('master_blackouts', JSON.stringify(next));
-  return true;
 }

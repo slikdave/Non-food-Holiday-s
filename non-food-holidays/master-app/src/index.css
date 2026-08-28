@@ -1,3 +1,723 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* EXACT CALENDAR DESIGN OVERRIDE */
+
+html,
+body,
+#root {
+  background: #003f31 !important;
+}
+
+body {
+  color: #ffffff !important;
+}
+
+/* Top banner */
+header {
+  background: #075340 !important;
+  color: #ffffff !important;
+  border-color: #003f31 !important;
+}
+
+header h1 {
+  color: #ffffff !important;
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+}
+
+header p {
+  color: #34d399 !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+/* Navigation buttons */
+header button {
+  background: #003b2f !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  font-weight: 600 !important;
+}
+
+header button:hover {
+  background: #00634d !important;
+  color: #ffffff !important;
+}
+
+/* Selected navigation button */
+header button.bg-emerald-500,
+header button.bg-emerald-400 {
+  background: #34d399 !important;
+  color: #003f31 !important;
+}
+
+/* Main month/year title */
+main h2 {
+  color: #ffffff !important;
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+}
+
+/* Previous / next / Today */
+main > div:first-child button {
+  background: #004b3a !important;
+  color: #ffffff !important;
+  border: 1px solid #079c72 !important;
+  font-weight: 600 !important;
+}
+
+main > div:first-child button:hover {
+  background: #00634d !important;
+  color: #ffffff !important;
+}
+
+/* Month and year selectors */
+main > div:first-child select {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #8be0c3 !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+/* Calendar outer container */
+main section {
+  background: #004b3a !important;
+  border-color: #079c72 !important;
+}
+
+/* Weekday bar */
+main section > div:first-child {
+  background: #079c72 !important;
+}
+
+main section > div:first-child > div {
+  background: #079c72 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Calendar date cells */
+main section > div:nth-child(2) > div {
+  background: #f7fffc !important;
+  color: #073d30 !important;
+  border-color: #7abfae !important;
+}
+
+/* Empty cells at beginning/end of month */
+main section > div:nth-child(2) > div:empty {
+  background: #003f31 !important;
+}
+
+/* Date numbers */
+main section > div:nth-child(2) > div > div {
+  color: #073d30 !important;
+}
+
+main section > div:nth-child(2) > div > div > span {
+  color: #073d30 !important;
+  font-weight: 600 !important;
+}
+
+/* Today's date */
+main section > div:nth-child(2) > div > div > span.bg-emerald-500,
+main section > div:nth-child(2) > div > div > span.bg-emerald-400 {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+/* Holiday/event labels */
+main section > div:nth-child(2) > div .bg-black {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+main section > div:nth-child(2) > div .bg-amber-400 {
+  background: #fbbf24 !important;
+  color: #000000 !important;
+}
+
+/* Legend */
+main > div:last-child {
+  color: #d1fae5 !important;
+}
+
+main > div:last-child span.bg-amber-400 {
+  background: #fbbf24 !important;
+}
+
+main > div:last-child span.bg-black {
+  background: #000000 !important;
+}
+
+/* Keep all dark buttons readable */
+button.bg-emerald-600,
+button.bg-emerald-700,
+button[class*="bg-[#004b3a]"],
+button[class*="bg-[#003f31]"] {
+  color: #ffffff !important;
+}
+
+/* Keep white controls readable */
+select {
+  color: #111827 !important;
+  background: #ffffff !important;
+}
+
+/* iPad/Safari */
+button,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== EXACT DARK CALENDAR UI ===== */
+
+/* Main page */
+body {
+  background: #01251a !important;
+  color: #ffffff !important;
+}
+
+/* Top banner */
+header {
+  background: #014430 !important;
+  color: #ffffff !important;
+  border-bottom: 0 !important;
+}
+
+/* App title */
+header h1 {
+  color: #ffffff !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+}
+
+/* Admin console subtitle */
+header p {
+  color: #16d39c !important;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
+}
+
+/* Calendar icon */
+header .bg-emerald-500 {
+  background: #08c993 !important;
+  color: #001b13 !important;
+}
+
+/* Navigation buttons */
+header button {
+  background: #003b2b !important;
+  color: #ffffff !important;
+  border-color: #003b2b !important;
+  font-weight: 700 !important;
+}
+
+header button:hover {
+  background: #07513d !important;
+  color: #ffffff !important;
+}
+
+/* Selected Calendar navigation button */
+header button.bg-emerald-500,
+header button[class*="bg-emerald-500"] {
+  background: #11c994 !important;
+  color: #001b13 !important;
+  border-color: #11c994 !important;
+}
+
+/* Main calendar area */
+main {
+  background: #01251a !important;
+}
+
+/* Month/year heading */
+main h2,
+main h3 {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Month + year selectors — IMPORTANT: make text visible */
+main select,
+select {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #12b989 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+
+main select option,
+select option {
+  background: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* Previous / next / Today buttons */
+main button {
+  color: #ffffff !important;
+  border-color: #079f78 !important;
+}
+
+main button[class*="bg-emerald-600"] {
+  background: #003b2b !important;
+  color: #ffffff !important;
+}
+
+main button[class*="bg-emerald-600"]:hover {
+  background: #07513d !important;
+}
+
+/* Calendar weekday header */
+[class*="grid-cols-7"] > div:first-child,
+[class*="grid-cols-7"] > div {
+  border-color: rgba(0,150,110,.45) !important;
+}
+
+/* Weekday strip */
+[class*="grid-cols-7"][class*="bg-emerald-600"] {
+  background: #079f78 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Calendar cells */
+[class*="grid-cols-7"] > div {
+  color: #123b2d !important;
+}
+
+/* Actual date numbers */
+[class*="grid-cols-7"] > div:not([class*="bg-emerald-600"]) {
+  background: #ffffff !important;
+  color: #123b2d !important;
+}
+
+/* Empty days belonging to previous/next month */
+[class*="grid-cols-7"] > div[class*="bg-emerald-900"] {
+  background: #01251a !important;
+  color: #ffffff !important;
+}
+
+/* Make date numbers clearly visible */
+[class*="grid-cols-7"] > div > span,
+[class*="grid-cols-7"] > div > div:first-child {
+  color: #123b2d !important;
+  font-weight: 600 !important;
+}
+
+/* Today circle */
+[class*="rounded-full"][class*="bg-emerald-500"] {
+  background: #10c997 !important;
+  color: #00261b !important;
+  font-weight: 800 !important;
+}
+
+/* Holiday entries */
+[class*="bg-emerald-950"] {
+  background: #003b2b !important;
+  color: #ffffff !important;
+}
+
+/* GM holiday */
+[class*="bg-amber-400"] {
+  background: #ffb91f !important;
+  color: #111111 !important;
+}
+
+/* George holiday */
+[class*="bg-black"] {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Calendar border */
+[class*="grid-cols-7"] {
+  border-color: #078f70 !important;
+}
+
+/* Legend */
+main [class*="text-emerald-200"],
+main [class*="text-emerald-100"] {
+  color: #ffffff !important;
+}
+
+/* Keep all important text readable */
+header *,
+main h2,
+main h3,
+main button,
+main label {
+  text-shadow: none !important;
+}
+
+
+/* =========================================================
+   FINAL COLOUR MATCH — LEFT/APPROVED IMAGE
+   ========================================================= */
+
+/* PAGE BACKGROUND */
+html,
+body,
+#root {
+  background: #01261a !important;
+  color: #ffffff !important;
+}
+
+/* MAIN APP BACKGROUND */
+.min-h-screen {
+  background: #01261a !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   TOP BANNER
+   ========================================================= */
+
+header {
+  background: #01462f !important;
+  color: #ffffff !important;
+  border-bottom: none !important;
+}
+
+/* App title */
+header h1 {
+  color: #ffffff !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+}
+
+/* Admin console */
+header p {
+  color: #16d6a0 !important;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
+}
+
+/* Calendar icon */
+header .bg-emerald-500,
+header [class*="bg-emerald-500"] {
+  background: #08c993 !important;
+  color: #00261a !important;
+}
+
+/* =========================================================
+   TOP NAVIGATION BUTTONS
+   ========================================================= */
+
+header button {
+  background: #003b2b !important;
+  color: #ffffff !important;
+  border-color: #003b2b !important;
+  font-weight: 700 !important;
+}
+
+header button:hover {
+  background: #07513d !important;
+  color: #ffffff !important;
+}
+
+/* SELECTED CALENDAR BUTTON */
+header button[class*="bg-emerald-500"] {
+  background: #0bd09a !important;
+  color: #001f15 !important;
+  border-color: #0bd09a !important;
+}
+
+/* =========================================================
+   MONTH / YEAR AREA
+   ========================================================= */
+
+main {
+  background: #01261a !important;
+}
+
+/* April 2026 */
+main h2,
+main h3 {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Month selector */
+main select,
+select {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #079f78 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+
+/* Options inside selectors */
+select option {
+  background: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* Previous / Next / Today */
+main button {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+main button[class*="bg-emerald-600"] {
+  background: #003b2b !important;
+  color: #ffffff !important;
+  border-color: #079f78 !important;
+}
+
+main button[class*="bg-emerald-600"]:hover {
+  background: #07513d !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   CALENDAR WEEKDAY BAR
+   ========================================================= */
+
+[class*="grid-cols-7"][class*="bg-emerald-600"] {
+  background: #008c62 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Sun Mon Tue Wed Thu Fri Sat */
+[class*="grid-cols-7"][class*="bg-emerald-600"] * {
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   CALENDAR CELLS
+   ========================================================= */
+
+/* Normal calendar cells */
+[class*="grid-cols-7"] > div {
+  background: #ffffff !important;
+  color: #123b2d !important;
+  border-color: #8fc7b8 !important;
+}
+
+/* Date numbers */
+[class*="grid-cols-7"] > div > span,
+[class*="grid-cols-7"] > div > div:first-child {
+  color: #123b2d !important;
+  font-weight: 600 !important;
+}
+
+/* Empty cells before/after the month */
+[class*="grid-cols-7"] > div[class*="bg-emerald-900"] {
+  background: #01261a !important;
+  color: #ffffff !important;
+  border-color: #07513d !important;
+}
+
+/* =========================================================
+   TODAY
+   ========================================================= */
+
+[class*="rounded-full"][class*="bg-emerald-500"] {
+  background: #0bd09a !important;
+  color: #00261a !important;
+  font-weight: 800 !important;
+}
+
+/* =========================================================
+   HOLIDAY COLOURS
+   ========================================================= */
+
+/* GM */
+[class*="bg-amber-400"] {
+  background: #ffb91f !important;
+  color: #111111 !important;
+}
+
+/* George */
+[class*="bg-black"] {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   CALENDAR BORDER
+   ========================================================= */
+
+[class*="grid-cols-7"] {
+  border-color: #079f78 !important;
+}
+
+/* =========================================================
+   LEGEND
+   ========================================================= */
+
+main [class*="text-emerald-200"],
+main [class*="text-emerald-100"] {
+  color: #ffffff !important;
+}
+
+/* Keep controls readable */
+button,
+select {
+  opacity: 1 !important;
+}
+
+/* Remove unwanted text effects */
+header *,
+main * {
+  text-shadow: none !important;
+}
+
+
+/* =========================================================
+   FINAL TOP EDGE / BANNER MATCH TO APPROVED IMAGE
+   ========================================================= */
+
+/* Remove every light edge around the application */
+html,
+body,
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #003f2b !important;
+  border: 0 !important;
+}
+
+/* The application itself */
+#root > div {
+  background: #003f2b !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* TOP BANNER — exact dark-green treatment */
+header {
+  background: #004631 !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Make sure nothing inside header creates a light strip */
+header::before,
+header::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Header contents */
+header * {
+  border-top-color: transparent !important;
+}
+
+/* Header title */
+header h1 {
+  color: #ffffff !important;
+}
+
+/* Admin console */
+header p {
+  color: #19d6a0 !important;
+}
+
+/* Header navigation buttons */
+header button {
+  background: #00392a !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Selected Calendar */
+header button[class*="bg-emerald-500"] {
+  background: #0bd09a !important;
+  color: #001f15 !important;
+  border: 0 !important;
+}
+
+/* Main section must meet banner cleanly */
+main {
+  background: #01261a !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove any top border from the main content */
+main::before {
+  display: none !important;
+}
+
+/* Keep month controls exactly readable */
+main select {
+  background: #ffffff !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  border: 1px solid #079f78 !important;
+}
+
+/* Calendar navigation */
+main button {
+  color: #ffffff !important;
+}
+
+main button[class*="bg-emerald-600"] {
+  background: #00392a !important;
+  color: #ffffff !important;
+  border: 1px solid #079f78 !important;
+}
+
+/* Weekday bar */
+[class*="grid-cols-7"][class*="bg-emerald-600"] {
+  background: #00966a !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+/* White calendar cells */
+[class*="grid-cols-7"] > div {
+  background: #ffffff !important;
+  color: #123b2d !important;
+  border-color: #8fc7b8 !important;
+}
+
+/* Dark outside-month cells */
+[class*="grid-cols-7"] > div[class*="bg-emerald-900"] {
+  background: #01261a !important;
+  color: #ffffff !important;
+}
+
+/* Date numbers */
+[class*="grid-cols-7"] > div > span,
+[class*="grid-cols-7"] > div > div:first-child {
+  color: #123b2d !important;
+}
+
+/* Today */
+[class*="rounded-full"][class*="bg-emerald-500"] {
+  background: #0bd09a !important;
+  color: #001f15 !important;
+}
+
+/* Holiday colours */
+[class*="bg-amber-400"] {
+  background: #ffb91f !important;
+  color: #111111 !important;
+}
+
+[class*="bg-black"] {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+

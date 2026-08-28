@@ -338,172 +338,109 @@ export default function App(){
   };
 
   const submitRequest = async (dates) => {
-    if (!active) return;
+    if (!active || !dates?.length) return;
+
+    /*
+     * HOLIDAY CAPACITY RULE
+     *
+     * Maximum approved leave on any one date:
+     *   - 1 GM colleague
+     *   - 1 George colleague
+     *
+     * Therefore:
+     *   GM + George on the same date = ALLOWED
+     *   2 GM on the same date          = CONFLICT
+     *   2 George on the same date      = CONFLICT
+     *
+     * Admin/manual override may deliberately bypass the conflict.
+     */
 
     setBusy(true);
 
     try {
-      /*
-       * ============================================================
-       * NON-FOOD HOLIDAY CONFLICT RULE
-       * ============================================================
-       *
-       * GM:
-       *   Only ONE GM colleague can be off on a date.
-       *
-       * George:
-       *   Only ONE George colleague can be off on a date.
-       *
-       * GM + George on the same date:
-       *   ALLOWED.
-       *
-       * Existing PENDING or APPROVED requests count as conflicts.
-       *
-       * CANCELLED and DENIED requests do not count.
-       *
-       * The master/admin user can use the manual override.
-       * ============================================================
-       */
-
-      const normalise = value =>
-        String(value ?? '').trim().toLowerCase();
-
-      const group = normalise(active.list);
-
-      const requestedDates = Array.isArray(dates)
-        ? dates.map(d => String(d))
-        : [];
-
-      /*
-       * Recognise the administrator/master app user.
-       */
       const isAdmin =
-        normalise(active.role) === 'admin' ||
-        active.isAdmin === true ||
-        active.admin === true ||
-        active.manualOverride === true;
+        active?.role === 'admin' ||
+        active?.isAdmin === true ||
+        active?.name?.toLowerCase() === 'admin';
 
       /*
-       * Only these groups are subject to the GM/George rule.
+       * If the app already exposes an admin/manual override state,
+       * honour it. Otherwise normal colleagues are always subject
+       * to the capacity rule.
        */
-      const isRestrictedGroup =
-        group === 'gm' ||
-        group === 'george';
-
-      /*
-       * PENDING and APPROVED requests both occupy the holiday slot.
-       *
-       * This is deliberate:
-       *
-       *   pending  = already requested, therefore slot is occupied
-       *   approved = approved, therefore slot is occupied
-       *   denied   = does not occupy slot
-       *   cancelled = does not occupy slot
-       *
-       * Do NOT exclude the current user here. If the same user
-       * already has a pending request for the same date, that is
-       * also treated as a duplicate/conflict.
-       */
-      const activeRequests = requests.filter(r => {
-        const status = normalise(r.status);
-
-        return (
-          status === 'pending' ||
-          status === 'approved'
+      const override =
+        isAdmin &&
+        (
+          typeof manualOverride !== 'undefined'
+            ? manualOverride
+            : typeof adminOverride !== 'undefined'
+              ? adminOverride
+              : false
         );
-      });
+
+      const approvedRequests = requests.filter(
+        r =>
+          r.status === 'approved' &&
+          r.name !== active.name
+      );
+
+      const group = active.list;
 
       /*
-       * Convert request dates into strings so the comparison works
-       * regardless of whether the stored value is a string, number,
-       * Date, or Firebase timestamp-like value.
+       * Only compare colleagues from the SAME group.
+       * This means one GM and one George can both be off.
        */
-      const requestDates = r => {
-        if (!Array.isArray(r.dates)) return [];
-
-        return r.dates.map(d => String(d));
-      };
-
-      /*
-       * Find conflicts DATE BY DATE.
-       *
-       * GM + George = OK.
-       * GM + GM = conflict.
-       * George + George = conflict.
-       */
-      const conflicts = requestedDates.filter(date => {
-        if (!isRestrictedGroup) return false;
-
-        return activeRequests.some(r => {
-          const existingGroup = normalise(r.list);
-
-          if (existingGroup !== group) return false;
-
-          return requestDates(r).includes(date);
+      const conflicts = dates.filter(date => {
+        const sameGroupApproved = approvedRequests.filter(r => {
+          if (r.list !== group) return false;
+          return Array.isArray(r.dates) && r.dates.includes(date);
         });
+
+        return sameGroupApproved.length >= 1;
       });
 
-      /*
-       * Master/admin may deliberately override a conflict.
-       */
-      const manualOverride =
-        isAdmin && confirmSwitch === true;
-
-      if (conflicts.length > 0 && !manualOverride) {
+      if (conflicts.length > 0 && !override) {
         setBusy(false);
 
-        const datesText = conflicts.join(', ');
+        const conflictText = conflicts.join(', ');
 
+        /*
+         * Keep the conflict visible in the request UI and make sure
+         * the notification is generated through the existing
+         * notification mechanism.
+         */
         alert(
-          `HOLIDAY CONFLICT
-
-I'm sorry, ${active.name}, this date is unavailable because
-1. A ${active.list} colleague is already off
-2. A ${active.list} colleague has a pending request
-Only ONE ${active.list} colleague can be off or pending an approval on the same date.
-Pending requests reserve the date until they are approved, denied or cancelled.
-However a GM and George colleague can be off on the same date.`
-        );
-
-        console.warn(
-          'HOLIDAY CONFLICT:',
-          {
-            employee: active.name,
-            group: active.list,
-            requestedDates,
-            conflicts,
-            existingRequests: activeRequests
-          }
+          `Conflict: ${group} already has approved leave on ${conflictText}. ` +
+          `Only 1 ${group} colleague can be off at a time.`
         );
 
         return;
       }
 
       /*
-       * Submit the request.
+       * No conflict, or an authorised admin override.
        */
       await createRequest({
         name: active.name,
         list: active.list,
-        dates: requestedDates,
+        dates,
         status: 'pending',
-        manual: manualOverride,
+        manual: Boolean(override),
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
 
-      setConfirmSwitch(false);
+      setBusy(false);
+    } catch (err) {
+      console.error('submitRequest failed:', err);
+      setBusy(false);
 
-    } catch (error) {
-      console.error('submitRequest error:', error);
       alert(
+        err?.message ||
         'Unable to submit the holiday request. Please try again.'
       );
-    } finally {
-      setBusy(false);
     }
   };
-
   const cancelRequest = async (id) => {
     setBusy(true);
     await patchRequest(id, { status: 'cancelled', updatedAt: Date.now() });

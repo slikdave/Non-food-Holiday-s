@@ -1,0 +1,365 @@
+===== APP BLACKOUT REFERENCES =====
+3:import { subscribeRoster, subscribeRequests, subscribeBlackouts, saveRoster, createRequest, patchRequest, createBlackout, deleteBlackout } from './data';
+99:function CalendarGrid({ year, month, approvedByDate, pendingByDate, blackoutByDate }){
+111:          const blackout = iso ? (blackoutByDate[iso] || []) : [];
+114:            <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-800 p-1 align-top ${iso ? (blackout.length > 0 ? 'bg-red-950/50' : 'bg-emerald-900/55') : 'bg-emerald-900/30'}`}>
+120:                  {blackout.length > 0 && (
+121:                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-red-500/25 text-red-200 border border-red-500/40 truncate font-semibold" title={blackout.map(b=>b.reason || 'Blackout date').join(', ')}>
+122:                      {blackout[0].reason ? `BLACKOUT — ${blackout[0].reason}` : 'BLACKOUT'}
+206:function BlackoutManager({ blackouts, onAdd, onDelete, busy }){
+218:        <h2 className="text-lg font-bold">Blackout dates</h2>
+219:        <p className="text-xs text-emerald-400">Blackout dates are visible in both apps and can only be changed here.</p>
+240:        <button disabled={busy || !startDate || !reason.trim()} onClick={submit} className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm disabled:opacity-40">Add blackout date</button>
+243:        <h3 className="text-sm font-bold mb-2">Current blackout dates</h3>
+244:        {blackouts.length === 0 && <p className="text-sm text-emerald-400">No blackout dates.</p>}
+246:          {blackouts.map(b => (
+248:              <div><p className="text-sm font-semibold">{formatDatesSummary([b.startDate || b.date || b.blackoutDate, ...((b.endDate || (b.startDate || b.date || b.blackoutDate)) !== (b.startDate || b.date || b.blackoutDate) ? [b.endDate] : [])])}</p>
+250:              <button disabled={busy} onClick={()=>onDelete(b.id)} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-red-500 text-red-300"><Trash2 size={13}/> Remove</button>
+262:  const [blackouts, setBlackouts] = useState([]);
+282:    const unsub3 = subscribeBlackouts(setBlackouts);
+326:  const blackoutByDate = {};
+327:  blackouts.forEach(b => {
+328:    const start = b.startDate || b.date || b.blackoutDate;
+332:      blackoutByDate[d] = blackoutByDate[d] || [];
+333:      blackoutByDate[d].push(b);
+361:            { id:'blackouts', label:'Blackout Dates', icon: CalendarDays },
+402:            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} pendingByDate={pendingByDate} blackoutByDate={blackoutByDate} />
+410:        {tab === 'blackouts' && (
+411:          <BlackoutManager blackouts={blackouts} busy={busy}
+415:    const created = await createBlackout({
+422:      setBlackouts(prev => [...prev, created]);
+425:    console.error("Failed to create blackout:", e);
+430:            onDelete={async (id) => {
+432:              try { await deleteBlackout(id); }
+
+===== DATA BLACKOUT REFERENCES =====
+26:export async function createRequest(fields) {
+45:export function subscribeBlackouts(cb) {
+48:      cb(JSON.parse(localStorage.getItem('master_blackouts') || '[]'));
+57:    if (e.key === 'master_blackouts') read();
+67:export async function createBlackout(data) {
+69:    localStorage.getItem('master_blackouts') || '[]'
+78:    'master_blackouts',
+85:export async function deleteBlackout(id) {
+86:  const existing = JSON.parse(localStorage.getItem('master_blackouts') || '[]');
+88:  localStorage.setItem('master_blackouts', JSON.stringify(next));
+
+===== APP 330-450 =====
+    if(!start) return;
+    dateRangeArray(start, end).forEach(d => {
+      blackoutByDate[d] = blackoutByDate[d] || [];
+      blackoutByDate[d].push(b);
+    });
+  });
+  const allSorted = [...requests].sort((a,b)=>b.updatedAt-a.updatedAt).filter(r => {
+    if(filterStatus !== 'all' && r.status !== filterStatus) return false;
+    if(filterList !== 'all' && r.list !== filterList) return false;
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-emerald-950 via-emerald-950 to-emerald-900 text-emerald-50">
+      <header className="bg-emerald-950/90 backdrop-blur border-b border-emerald-800 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-emerald-950"><CalendarDays size={18}/></div>
+            <div>
+              <h1 className="text-base font-bold leading-none tracking-tight">Non-food Holidays</h1>
+              <p className="text-[11px] text-emerald-400">Admin console</p>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 pb-2 flex gap-1.5 flex-wrap">
+          {[
+            { id:'notifications', label:'Requests', icon: Bell, badge: pending.length },
+            { id:'calendar', label:'Calendar', icon: CalendarDays },
+            { id:'allRequests', label:'All Requests', icon: ListChecks },
+            { id:'roster', label:'Colleagues', icon: Users },
+            { id:'manual', label:'Manual Approval', icon: PenSquare },
+            { id:'blackouts', label:'Blackout Dates', icon: CalendarDays },
+          ].map(t => (
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition ${tab===t.id ? 'bg-emerald-500 text-emerald-950' : 'bg-emerald-900 text-emerald-200 border border-emerald-800 hover:bg-emerald-800'}`}>
+              <t.icon size={14}/>{t.label}
+              {!!t.badge && <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{t.badge}</span>}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 py-4 space-y-4">
+
+        {tab === 'notifications' && (
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold">Pending requests</h2>
+            {pending.length === 0 && <p className="text-sm text-emerald-400">No pending requests right now.</p>}
+            {pending.map(r => (
+              <div key={r.id} className="rounded-xl border border-emerald-800 bg-emerald-900/50 p-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded ${listChipClasses(r.list)}`}>{r.name}</span>
+                  <div>
+                    <p className="text-sm font-medium">{formatDatesSummary(r.dates)}</p>
+                    <p className="text-[11px] text-emerald-400 flex items-center gap-1"><Clock size={11}/> submitted {timeAgo(r.createdAt)}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button disabled={busy} onClick={()=>approveRequest(r.id)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-emerald-950 font-semibold hover:bg-emerald-400"><Check size={13}/> Approve</button>
+                  <button disabled={busy} onClick={()=>denyRequest(r.id)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-red-500 text-red-300 hover:bg-red-500/10"><X size={13}/> Deny</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'calendar' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg font-bold">{MONTH_NAMES[viewMonth]} {viewYear}</h2>
+              <MonthJumpControls year={viewYear} month={viewMonth} onChange={(y,m)=>{setViewYear(y);setViewMonth(m);}} />
+            </div>
+            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} pendingByDate={pendingByDate} blackoutByDate={blackoutByDate} />
+            <div className="flex items-center gap-4 text-xs text-emerald-300">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 border border-amber-500 inline-block"/> GM</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-black inline-block"/> George</span>
+            </div>
+          </div>
+        )}
+
+        {tab === 'blackouts' && (
+          <BlackoutManager blackouts={blackouts} busy={busy}
+            onAdd={async (startDate, endDate, reason) => {
+  setBusy(true);
+  try {
+    const created = await createBlackout({
+      startDate,
+      endDate,
+      reason
+    });
+
+    if (created) {
+      setBlackouts(prev => [...prev, created]);
+    }
+  } catch (e) {
+    console.error("Failed to create blackout:", e);
+  } finally {
+    setBusy(false);
+  }
+}}
+            onDelete={async (id) => {
+              setBusy(true);
+              try { await deleteBlackout(id); }
+              catch (e) { console.error(e); }
+              setBusy(false);
+            }} />
+        )}
+
+        {tab === 'allRequests' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold mr-auto">All requests</h2>
+              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="text-sm rounded-lg border border-emerald-700 bg-emerald-950 px-2 py-1.5">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="denied">Denied</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="deleted">Removed</option>
+              </select>
+              <select value={filterList} onChange={e=>setFilterList(e.target.value)} className="text-sm rounded-lg border border-emerald-700 bg-emerald-950 px-2 py-1.5">
+
+===== APP 450-560 =====
+              <select value={filterList} onChange={e=>setFilterList(e.target.value)} className="text-sm rounded-lg border border-emerald-700 bg-emerald-950 px-2 py-1.5">
+                <option value="all">Both lists</option>
+                <option value="GM">GM</option>
+                <option value="George">George</option>
+              </select>
+            </div>
+            {allSorted.length === 0 && <p className="text-sm text-emerald-400">No requests match this filter.</p>}
+            {allSorted.map(r => {
+              const badge = statusBadge(r.status);
+              return (
+                <div key={r.id} className="rounded-xl border border-emerald-800 bg-emerald-900/40 p-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${listChipClasses(r.list)}`}>{r.name}</span>
+                    <div>
+                      <p className="text-sm font-medium">{formatDatesSummary(r.dates)}</p>
+                      <span className={`inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                      {r.manual && <span className="ml-2 text-[11px] text-emerald-400">Manual entry</span>}
+                    </div>
+                  </div>
+                  {r.status !== 'deleted' && (
+                    <button disabled={busy} onClick={()=>deleteRequest(r.id)} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-red-500 text-red-300 hover:bg-red-500/10">
+                      <Trash2 size={13}/> Delete
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === 'roster' && (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-emerald-800 bg-emerald-900/40 p-4 space-y-3">
+              <h3 className="text-sm font-bold px-2 py-1 rounded inline-block bg-amber-400 text-black">GM</h3>
+              <div className="flex gap-2">
+                <input value={newNameGM} onChange={e=>setNewNameGM(e.target.value)} placeholder="Add a name…"
+                  className="flex-1 border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm" />
+                <button onClick={()=>addName('GM', newNameGM)} disabled={busy} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400">Add</button>
+              </div>
+              <div className="space-y-1.5">
+                {(roster.GM||[]).map(n => (
+                  <div key={n} className="flex items-center justify-between bg-amber-400 text-black rounded-lg px-2.5 py-1.5 text-sm font-medium">
+                    {n}
+                    <button onClick={()=>removeName('GM', n)} className="hover:text-red-700"><X size={14}/></button>
+                  </div>
+                ))}
+                {(roster.GM||[]).length === 0 && <p className="text-xs text-emerald-400">No names yet.</p>}
+              </div>
+            </div>
+            <div className="rounded-xl border border-emerald-800 bg-emerald-900/40 p-4 space-y-3">
+              <h3 className="text-sm font-bold px-2 py-1 rounded inline-block bg-black text-white">George</h3>
+              <div className="flex gap-2">
+                <input value={newNameGeorge} onChange={e=>setNewNameGeorge(e.target.value)} placeholder="Add a name…"
+                  className="flex-1 border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm" />
+                <button onClick={()=>addName('George', newNameGeorge)} disabled={busy} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400">Add</button>
+              </div>
+              <div className="space-y-1.5">
+                {(roster.George||[]).map(n => (
+                  <div key={n} className="flex items-center justify-between bg-black text-white rounded-lg px-2.5 py-1.5 text-sm font-medium">
+                    {n}
+                    <button onClick={()=>removeName('George', n)} className="hover:text-red-400"><X size={14}/></button>
+                  </div>
+                ))}
+                {(roster.George||[]).length === 0 && <p className="text-xs text-emerald-400">No names yet.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'manual' && (
+          <div className="rounded-xl border border-emerald-800 bg-emerald-900/40 p-4 space-y-4 max-w-xl">
+            <h2 className="text-lg font-bold">Manual approval</h2>
+            <p className="text-xs text-emerald-400">Directly add an approved entry — for example a request made outside the app.</p>
+            <div className="flex gap-2">
+              <button onClick={()=>{setManualList('GM'); setManualName('');}} className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${manualList==='GM' ? 'bg-amber-400 text-black' : 'bg-emerald-950 border border-emerald-700 text-emerald-200'}`}>GM</button>
+              <button onClick={()=>{setManualList('George'); setManualName('');}} className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${manualList==='George' ? 'bg-black text-white' : 'bg-emerald-950 border border-emerald-700 text-emerald-200'}`}>George</button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] text-emerald-300 mb-0.5">Choose existing name</label>
+                <select value={manualName} onChange={e=>{setManualName(e.target.value); setManualCustomName('');}}
+                  className="w-full border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm">
+                  <option value="">—</option>
+                  {(roster[manualList]||[]).map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] text-emerald-300 mb-0.5">Or type a new name</label>
+                <input value={manualCustomName} onChange={e=>{setManualCustomName(e.target.value); setManualName('');}} placeholder="New colleague name"
+                  className="w-full border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+            </div>
+            <DateBuilder dateFlags={manualDateFlags} setDateFlags={setManualDateFlags} />
+            <button onClick={submitManualApproval} disabled={busy}
+              className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40">
+              Add approved entry
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+===== DATA.JS =====
+import { db } from './firebase';
+import {
+  doc, setDoc, onSnapshot, collection, addDoc, updateDoc,
+} from 'firebase/firestore';
+
+const ROSTER_DOC = doc(db, 'meta', 'roster');
+const REQUESTS_COL = collection(db, 'requests');
+
+export function subscribeRoster(cb) {
+  return onSnapshot(ROSTER_DOC, (snap) => {
+    cb(snap.exists() ? snap.data() : { GM: [], George: [] });
+  }, (err) => console.error('roster subscribe error', err));
+}
+
+export async function saveRoster(next) {
+  await setDoc(ROSTER_DOC, next);
+}
+ 
+export function subscribeRequests(cb) {
+  return onSnapshot(REQUESTS_COL, (snap) => {
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    cb(list);
+  }, (err) => console.error('requests subscribe error', err));
+}
+
+export async function createRequest(fields) {
+  await addDoc(REQUESTS_COL, fields);
+}
+
+export async function patchRequest(id, patch) {
+  await updateDoc(doc(db, 'requests', id), patch);
+}
+
+// device-specific storage (genuinely per-browser/per-device, no account involved)
+export function readLocal(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch (e) { return fallback; }
+}
+export function writeLocal(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+}
+
+export function subscribeBlackouts(cb) {
+  const read = () => {
+    try {
+      cb(JSON.parse(localStorage.getItem('master_blackouts') || '[]'));
+    } catch {
+      cb([]);
+    }
+  };
+
+  read();
+
+  const onStorage = (e) => {
+    if (e.key === 'master_blackouts') read();
+  };
+
+  window.addEventListener('storage', onStorage);
+
+  return () => {
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
+export async function createBlackout(data) {
+  const existing = JSON.parse(
+    localStorage.getItem('master_blackouts') || '[]'
+  );
+
+  const next = {
+    id: crypto.randomUUID(),
+    ...data
+  };
+
+  localStorage.setItem(
+    'master_blackouts',
+    JSON.stringify([...existing, next])
+  );
+
+  return next;
+}
+
+export async function deleteBlackout(id) {
+  const existing = JSON.parse(localStorage.getItem('master_blackouts') || '[]');
+  const next = existing.filter(x => x.id !== id);
+  localStorage.setItem('master_blackouts', JSON.stringify(next));
+  return true;
+}
