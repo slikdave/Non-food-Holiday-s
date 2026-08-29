@@ -158,10 +158,10 @@ function CalendarGrid({ year, month, approvedByDate = {}, pendingByDate = {}, bl
           ];
           const isToday = iso === today;
           return (
-            <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-800 p-1 align-top ${iso ? (blackout.length > 0 ? 'bg-red-950/60' : 'bg-emerald-900/55') : 'bg-emerald-900/30'}`}>
+            <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-800 p-1 align-top ${iso ? (blackout.length > 0 ? 'bg-red-950/60' : 'bg-emerald-200') : 'bg-emerald-900/30'}`}>
               {iso && (
                 <>
-                  <div className={`text-[11px] mb-1 inline-flex items-center justify-center w-5 h-5 rounded-full ${isToday ? 'bg-emerald-400 text-emerald-950 font-bold' : 'text-emerald-100'}`}>
+                  <div className={`text-[11px] mb-1 inline-flex items-center justify-center w-5 h-5 rounded-full ${isToday ? 'bg-emerald-400 text-emerald-950 font-bold' : 'text-emerald-900'}`}>
                     {fromISO(iso).getDate()}
                   </div>
                   {blackout.length > 0 && (
