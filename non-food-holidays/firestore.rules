@@ -1,14 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Open read/write for both apps to talk to each other with no login system.
-    // Good enough for an internal team tool on a private link.
-    // Tighten this later (e.g. Firebase Auth + custom claims) if it needs to be public-safe.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMaster() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role in ['admin', 'master'];
+    }
+
     match /meta/{docId} {
-      allow read, write: if true;
+      allow read: if signedIn();
+      allow write: if isMaster();
     }
     match /requests/{docId} {
-      allow read, write: if true;
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isMaster()
+        || (signedIn()
+          && resource.data.createdBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+      allow delete: if isMaster();
+    }
+    match /blackouts/{docId} {
+      allow read: if signedIn();
+      allow create: if isMaster()
+        && request.resource.data.keys().hasAll(['startDate', 'endDate', 'reason', 'createdAt', 'createdBy'])
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isMaster()
+        && request.resource.data.keys().hasAll(['startDate', 'endDate', 'reason', 'createdAt', 'createdBy'])
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isMaster();
+    }
+    match /blackoutReasons/{reasonId} {
+      allow read: if signedIn();
+      allow create: if isMaster()
+        && request.resource.data.keys().hasAll(['name', 'createdAt', 'createdBy'])
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isMaster()
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isMaster();
+    }
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

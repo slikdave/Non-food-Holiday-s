@@ -1,0 +1,617 @@
+[1mdiff --git a/non-food-holidays/master-app/src/App.jsx b/non-food-holidays/master-app/src/App.jsx[m
+[1mindex e23a392..cf42349 100644[m
+[1m--- a/non-food-holidays/master-app/src/App.jsx[m
+[1m+++ b/non-food-holidays/master-app/src/App.jsx[m
+[36m@@ -1,6 +1,9 @@[m
+ import React, { useState, useEffect } from 'react';[m
+ import { ChevronLeft, ChevronRight, X, Plus, Bell, CalendarDays, ListChecks, Users, PenSquare, Check, Trash2, Clock } from 'lucide-react';[m
+[31m-import { subscribeRoster, subscribeRequests, saveRoster, createRequest, patchRequest } from './data';[m
+[32m+[m[32mimport { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';[m
+[32m+[m[32mimport { doc, getDoc } from 'firebase/firestore';[m
+[32m+[m[32mimport { subscribeRoster, subscribeRequests, subscribeBlackouts, subscribeBlackoutReasons, saveRoster, createRequest, patchRequest, createBlackout, deleteBlackout, createBlackoutReason } from './data';[m
+[32m+[m[32mimport { auth, db } from './firebase';[m
+ [m
+ const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];[m
+ const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];[m
+[36m@@ -51,6 +54,46 @@[m [mfunction timeAgo(ts){[m
+   if(hrs < 24) return `${hrs}h ago`;[m
+   return `${Math.floor(hrs/24)}d ago`;[m
+ }[m
+[32m+[m[32mfunction formatFriendlyDateList(dates){[m
+[32m+[m[32m  return (Array.isArray(dates) ? dates : []).map((date) => {[m
+[32m+[m[32m    if (!date) return '';[m
+[32m+[m[32m    const d = fromISO(String(date));[m
+[32m+[m[32m    return `${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getDate()}`;[m
+[32m+[m[32m  }).filter(Boolean).join(', ');[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction getTeamConflictDates({ requests = [], team, requestedDates = [], ignoreRequestId = null }){[m
+[32m+[m[32m  const teamName = String(team ?? '').trim();[m
+[32m+[m[32m  if (!['GM', 'George'].includes(teamName)) return [];[m
+[32m+[m[32m  const occupying = (requests || []).filter((request) => {[m
+[32m+[m[32m    if (!request) return false;[m
+[32m+[m[32m    if (ignoreRequestId && request.id === ignoreRequestId) return false;[m
+[32m+[m[32m    if (!['pending', 'approved'].includes(String(request.status || '').trim().toLowerCase())) return false;[m
+[32m+[m[32m    return String(request.list || '').trim() === teamName;[m
+[32m+[m[32m  });[m
+[32m+[m[32m  return requestedDates.filter((date) => {[m
+[32m+[m[32m    const iso = String(date);[m
+[32m+[m[32m    return occupying.some((request) => Array.isArray(request.dates) && request.dates.map(d => String(d)).includes(iso));[m
+[32m+[m[32m  });[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction getBlackoutConflictDates(blackouts = [], requestedDates = []) {[m
+[32m+[m[32m  const blackoutSet = {};[m
+[32m+[m[32m  (blackouts || []).forEach((blackout) => {[m
+[32m+[m[32m    const start = blackout.startDate || blackout.date || blackout.blackoutDate;[m
+[32m+[m[32m    const end = blackout.endDate || start;[m
+[32m+[m[32m    if (!start) return;[m
+[32m+[m[32m    dateRangeArray(start, end).forEach((d) => { blackoutSet[d] = true; });[m
+[32m+[m[32m  });[m
+[32m+[m[32m  return requestedDates.filter((date) => blackoutSet[String(date)]);[m
+[32m+[m[32m}[m
+[32m+[m[32mfunction getBlackoutReasonsForDates(blackouts = [], dates = []) {[m
+[32m+[m[32m  return dates.map((date) => {[m
+[32m+[m[32m    const match = (blackouts || []).find((blackout) => dateRangeArray([m
+[32m+[m[32m      blackout.startDate || blackout.date || blackout.blackoutDate,[m
+[32m+[m[32m      blackout.endDate || blackout.startDate || blackout.date || blackout.blackoutDate,[m
+[32m+[m[32m    ).includes(String(date)));[m
+[32m+[m[32m    return match?.reason || 'Blackout date';[m
+[32m+[m[32m  });[m
+[32m+[m[32m}[m
+ [m
+ function listChipClasses(list){[m
+   return list === 'GM'[m
+[36m@@ -96,19 +139,9 @@[m [mfunction MonthJumpControls({ year, month, onChange }){[m
+   );[m
+ }[m
+ [m
+[31m-function CalendarGrid({ year, month, approvedByDate, requests = [] }){[m
+[32m+[m[32mfunction CalendarGrid({ year, month, approvedByDate = {}, pendingByDate = {}, blackoutByDate = {} }){[m
+   const weeks = buildMonthMatrix(year, month);[m
+   const today = toISO(new Date());[m
+[31m-[m
+[31m-  const pendingByDate = {};[m
+[31m-  requests.filter(r => r && r.status === 'pending').forEach(r => {[m
+[31m-    if (!Array.isArray(r.dates)) return;[m
+[31m-    r.dates.forEach(iso => {[m
+[31m-      if (!pendingByDate[iso]) pendingByDate[iso] = [];[m
+[31m-      pendingByDate[iso].push({ ...r, status: 'pending' });[m
+[31m-    });[m
+[31m-  });[m
+[31m-[m
+   return ([m
+     <div className="rounded-xl overflow-hidden border border-emerald-800">[m
+       <div className="grid grid-cols-7 bg-emerald-800 text-emerald-50 text-xs font-semibold">[m
+[36m@@ -118,31 +151,36 @@[m [mfunction CalendarGrid({ year, month, approvedByDate, requests = [] }){[m
+         {weeks.flat().map((iso, idx) => {[m
+           const approved = iso ? (approvedByDate[iso] || []) : [];[m
+           const pending = iso ? (pendingByDate[iso] || []) : [];[m
+[32m+[m[32m          const blackout = iso ? (blackoutByDate[iso] || []) : [];[m
+           const entries = [[m
+             ...approved.map(e => ({ ...e, status: 'approved' })),[m
+             ...pending[m
+           ];[m
+           const isToday = iso === today;[m
+           return ([m
+[31m-            <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-900 p-1 align-top ${iso ? 'bg-emerald-950' : 'bg-emerald-900/30'}`}>[m
+[32m+[m[32m            <div key={idx} className={`min-h-[76px] border-b border-r border-emerald-800 p-1 align-top ${iso ? (blackout.length > 0 ? 'bg-red-950/60' : 'bg-emerald-900/55') : 'bg-emerald-900/30'}`}>[m
+               {iso && ([m
+                 <>[m
+[31m-                  <div className={`text-[11px] mb-1 inline-flex items-center justify-center w-5 h-5 rounded-full ${isToday ? 'bg-emerald-400 text-emerald-950 font-bold' : 'text-emerald-200'}`}>[m
+[32m+[m[32m                  <div className={`text-[11px] mb-1 inline-flex items-center justify-center w-5 h-5 rounded-full ${isToday ? 'bg-emerald-400 text-emerald-950 font-bold' : 'text-emerald-100'}`}>[m
+                     {fromISO(iso).getDate()}[m
+                   </div>[m
+[32m+[m[32m                  {blackout.length > 0 && ([m
+[32m+[m[32m                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-red-500/25 text-red-200 border border-red-500/40 truncate font-semibold" title={blackout.map(b => b.reason || 'Blackout date').join(', ')}>[m
+[32m+[m[32m                      BLACKOUT[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  )}[m
+[32m+[m[32m                  {pending.length > 0 && ([m
+[32m+[m[32m                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-gray-500/50 text-gray-100 border border-gray-400/40 truncate" title={pending.map(p => `${p.name} — Pending`).join(', ')}>[m
+[32m+[m[32m                      Pending[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  )}[m
+                   <div className="flex flex-col gap-0.5">[m
+                     {entries.slice(0,3).map((e,i) => {[m
+                       const isPending = e.status === 'pending';[m
+                       return ([m
+[31m-                        <div[m
+[31m-                          key={i}[m
+[31m-                          title={`${e.name} — ${isPending ? 'Pending' : 'Approved'}`}[m
+[31m-                          className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate font-medium ${[m
+[31m-                            isPending[m
+[31m-                              ? 'bg-gray-400 text-gray-800 border border-gray-500'[m
+[31m-                              : listChipClasses(e.list)[m
+[31m-                          }`}[m
+[31m-                        >[m
+[32m+[m[32m                        <div key={e.id || `${iso}-${e.name}-${i}`} title={`${e.name} — ${isPending ? 'Pending' : 'Approved'}`} className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate font-medium ${[m
+[32m+[m[32m                          isPending ? 'bg-gray-400 text-gray-800 border border-gray-500' : listChipClasses(e.list)[m
+[32m+[m[32m                        }`}>[m
+                           {e.name}[m
+                         </div>[m
+                       );[m
+[36m@@ -216,9 +254,167 @@[m [mfunction DateBuilder({ dateFlags, setDateFlags }){[m
+   );[m
+ }[m
+ [m
+[32m+[m[32mfunction BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons = [], customReasons = [], onSaveCustomReason, saveError, saveNotice, loading, loadError }) {[m
+[32m+[m[32m  const [startDate, setStartDate] = useState('');[m
+[32m+[m[32m  const [endDate, setEndDate] = useState('');[m
+[32m+[m[32m  const [reason, setReason] = useState('');[m
+[32m+[m[32m  const [customReason, setCustomReason] = useState('');[m
+[32m+[m
+[32m+[m[32m  const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons || []).map(item => item.name)])];[m
+[32m+[m
+[32m+[m[32m  const submit = async (e) => {[m
+[32m+[m[32m    e.preventDefault();[m
+[32m+[m[32m    const resolvedReason = reason === 'custom' ? customReason.trim() : reason.trim();[m
+[32m+[m[32m    if (!startDate || !resolvedReason) {[m
+[32m+[m[32m      alert('Please choose a blackout date and enter a reason before saving.');[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      await onAdd(startDate, endDate || startDate, resolvedReason);[m
+[32m+[m[32m      setStartDate('');[m
+[32m+[m[32m      setEndDate('');[m
+[32m+[m[32m      setReason('');[m
+[32m+[m[32m      setCustomReason('');[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Add blackout error:', error);[m
+[32m+[m[32m      alert(error?.message || 'Unable to save blackout date. Please try again.');[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const addCustomReason = async () => {[m
+[32m+[m[32m    const next = customReason.trim();[m
+[32m+[m[32m    if (!next) {[m
+[32m+[m[32m      alert('Please enter a custom blackout reason before saving it.');[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    if ((customReasons || []).some(item => item.name.toLowerCase() === next.toLowerCase())) {[m
+[32m+[m[32m      setReason(next);[m
+[32m+[m[32m      setCustomReason(next);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      await onSaveCustomReason(next);[m
+[32m+[m[32m      setReason(next);[m
+[32m+[m[32m      setCustomReason(next);[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Add custom blackout reason error:', error);[m
+[32m+[m[32m      alert(error?.message || 'Unable to save the custom blackout reason.');[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const effectiveReasonValue = reason === 'custom' ? customReason : reason;[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="space-y-4">[m
+[32m+[m[32m      {saveError && ([m
+[32m+[m[32m        <div className="rounded-lg border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200">{saveError}</div>[m
+[32m+[m[32m      )}[m
+[32m+[m[32m      {saveNotice && ([m
+[32m+[m[32m        <div className="rounded-lg border border-emerald-400 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{saveNotice}</div>[m
+[32m+[m[32m      )}[m
+[32m+[m
+[32m+[m[32m      <form onSubmit={submit} className="rounded-xl border border-emerald-800 bg-emerald-900/60 p-4 space-y-4">[m
+[32m+[m[32m        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <label className="mb-1 block text-xs font-medium text-emerald-300">From</label>[m
+[32m+[m[32m            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" />[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <label className="mb-1 block text-xs font-medium text-emerald-300">To (optional)</label>[m
+[32m+[m[32m            <input type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} className="block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" />[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <label className="mb-1 block text-xs font-medium text-emerald-300">Reason</label>[m
+[32m+[m[32m            <select value={reason} onChange={e => setReason(e.target.value)} className="block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50">[m
+[32m+[m[32m              <option value="">Select a reason...</option>[m
+[32m+[m[32m              {reasonOptions.map((option) => ([m
+[32m+[m[32m                <option key={option} value={option}>{option}</option>[m
+[32m+[m[32m              ))}[m
+[32m+[m[32m              <option value="custom">Custom reason</option>[m
+[32m+[m[32m            </select>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m
+[32m+[m[32m        {reason === 'custom' && ([m
+[32m+[m[32m          <div className="flex flex-col gap-2 rounded-lg border border-emerald-700 bg-emerald-950/60 p-3 sm:flex-row sm:items-end">[m
+[32m+[m[32m            <div className="flex-1">[m
+[32m+[m[32m              <label className="mb-1 block text-xs font-medium text-emerald-300">Custom blackout reason</label>[m
+[32m+[m[32m              <input value={customReason} onChange={e => setCustomReason(e.target.value)} placeholder="Type your custom reason" className="block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" />[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <button type="button" onClick={addCustomReason} disabled={busy || !customReason.trim()} className="rounded-lg border border-emerald-500 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Save custom reason</button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        )}[m
+[32m+[m
+[32m+[m[32m        <div className="rounded-lg border border-emerald-700 bg-emerald-950/60 p-3">[m
+[32m+[m[32m          <label className="mb-1 block text-xs font-medium text-emerald-300">Reason to save</label>[m
+[32m+[m[32m          <input value={effectiveReasonValue || ''} readOnly className="block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" placeholder="No reason selected" />[m
+[32m+[m[32m        </div>[m
+[32m+[m
+[32m+[m[32m        <button type="submit" disabled={busy || !startDate || !(reason === 'custom' ? customReason.trim() : reason.trim())} className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Adding...' : 'Add blackout date'}</button>[m
+[32m+[m[32m      </form>[m
+[32m+[m
+[32m+[m[32m      <section className="rounded-xl border border-emerald-800 bg-emerald-900/50 p-4">[m
+[32m+[m[32m        <h3 className="mb-3 text-sm font-bold text-emerald-100">Current blackout dates</h3>[m
+[32m+[m[32m        {loading ? ([m
+[32m+[m[32m          <p className="text-sm text-emerald-300">Loading blackout dates...</p>[m
+[32m+[m[32m        ) : loadError ? ([m
+[32m+[m[32m          <p className="text-sm text-red-300">Unable to load blackout dates: {loadError}</p>[m
+[32m+[m[32m        ) : blackouts.length === 0 ? ([m
+[32m+[m[32m          <p className="text-sm text-emerald-400">No blackout dates.</p>[m
+[32m+[m[32m        ) : ([m
+[32m+[m[32m          <div className="space-y-2">[m
+[32m+[m[32m            {blackouts.map((b) => {[m
+[32m+[m[32m              const from = b.startDate || b.date || b.blackoutDate || '';[m
+[32m+[m[32m              const to = b.endDate || from;[m
+[32m+[m[32m              return ([m
+[32m+[m[32m                <div key={b.id} className="flex w-full flex-col gap-3 rounded-lg border border-emerald-800 bg-emerald-950/50 p-3 sm:flex-row sm:items-center sm:justify-between">[m
+[32m+[m[32m                  <div className="min-w-0">[m
+[32m+[m[32m                    <div className="font-semibold text-emerald-100">{from}{to && to !== from ? ` – ${to}` : ''}</div>[m
+[32m+[m[32m                    <div className="text-sm text-emerald-400">{b.reason || 'Blackout'}</div>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                  <button type="button" disabled={busy} onClick={() => onDelete(b.id)} className="shrink-0 rounded-lg border border-red-500 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">Remove</button>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              );[m
+[32m+[m[32m            })}[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        )}[m
+[32m+[m[32m      </section>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction MasterLogin({ email, setEmail, password, setPassword, onSubmit, busy, error }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-emerald-950 to-emerald-900 p-6 text-emerald-50">[m
+[32m+[m[32m      <form onSubmit={onSubmit} className="w-full max-w-sm rounded-2xl border border-emerald-800 bg-emerald-900/70 p-6 shadow-xl space-y-4">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <h1 className="text-xl font-bold">Non-food Holidays</h1>[m
+[32m+[m[32m          <p className="mt-1 text-sm text-emerald-300">Sign in with your provisioned master account.</p>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        {error && <div className="rounded-lg border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}[m
+[32m+[m[32m        <label className="block text-sm text-emerald-200">[m
+[32m+[m[32m          Email[m
+[32m+[m[32m          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" />[m
+[32m+[m[32m        </label>[m
+[32m+[m[32m        <label className="block text-sm text-emerald-200">[m
+[32m+[m[32m          Password[m
+[32m+[m[32m          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm text-emerald-50" />[m
+[32m+[m[32m        </label>[m
+[32m+[m[32m        <button type="submit" disabled={busy} className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 disabled:cursor-not-allowed disabled:opacity-50">[m
+[32m+[m[32m          {busy ? 'Signing in...' : 'Sign in'}[m
+[32m+[m[32m        </button>[m
+[32m+[m[32m      </form>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+ export default function App(){[m
+   const [roster, setRoster] = useState({ GM: [], George: [] });[m
+   const [requests, setRequests] = useState([]);[m
+[32m+[m[32m  const [blackouts, setBlackouts] = useState([]);[m
+[32m+[m[32m  const [blackoutReasons, setBlackoutReasons] = useState([]);[m
+[32m+[m[32m  const [blackoutsLoading, setBlackoutsLoading] = useState(false);[m
+[32m+[m[32m  const [blackoutsLoadError, setBlackoutsLoadError] = useState('');[m
+   const [tab, setTab] = useState('notifications');[m
+   const [viewYear, setViewYear] = useState(new Date().getFullYear());[m
+   const [viewMonth, setViewMonth] = useState(new Date().getMonth());[m
+[36m@@ -231,15 +427,73 @@[m [mexport default function App(){[m
+   const [manualName, setManualName] = useState('');[m
+   const [manualCustomName, setManualCustomName] = useState('');[m
+   const [manualDateFlags, setManualDateFlags] = useState({});[m
+[32m+[m[32m  const [masterConflictOverride, setMasterConflictOverride] = useState(false);[m
+[32m+[m[32m  const [saveError, setSaveError] = useState('');[m
+[32m+[m[32m  const [saveNotice, setSaveNotice] = useState('');[m
+[32m+[m[32m  const [authUser, setAuthUser] = useState(null);[m
+[32m+[m[32m  const [isAdmin, setIsAdmin] = useState(false);[m
+[32m+[m[32m  const [authLoading, setAuthLoading] = useState(true);[m
+[32m+[m[32m  const [authError, setAuthError] = useState('');[m
+[32m+[m[32m  const [loginEmail, setLoginEmail] = useState('');[m
+[32m+[m[32m  const [loginPassword, setLoginPassword] = useState('');[m
+[32m+[m[32m  const [loginBusy, setLoginBusy] = useState(false);[m
+ [m
+   const [filterStatus, setFilterStatus] = useState('all');[m
+   const [filterList, setFilterList] = useState('all');[m
+ [m
+   useEffect(() => {[m
+[32m+[m[32m    return onAuthStateChanged(auth, async (user) => {[m
+[32m+[m[32m      setAuthUser(user);[m
+[32m+[m[32m      setIsAdmin(false);[m
+[32m+[m[32m      if (!user) {[m
+[32m+[m[32m        setAuthLoading(false);[m
+[32m+[m[32m        return;[m
+[32m+[m[32m      }[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const adminSnap = await getDoc(doc(db, 'admins', user.uid));[m
+[32m+[m[32m        setIsAdmin(adminSnap.exists() && ['admin', 'master'].includes(String(adminSnap.data().role || '').toLowerCase()));[m
+[32m+[m[32m      } catch (error) {[m
+[32m+[m[32m        console.error('Admin authorization check failed:', error);[m
+[32m+[m[32m        setAuthError('Unable to verify master access. Check Firestore permissions and try again.');[m
+[32m+[m[32m      } finally {[m
+[32m+[m[32m        setAuthLoading(false);[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    if (!isAdmin) return undefined;[m
+[32m+[m[32m    setBlackoutsLoading(true);[m
+[32m+[m[32m    setBlackoutsLoadError('');[m
+     const unsub1 = subscribeRoster(setRoster);[m
+     const unsub2 = subscribeRequests(setRequests);[m
+[31m-    return () => { unsub1(); unsub2(); };[m
+[31m-  }, []);[m
+[32m+[m[32m    const unsub3 = subscribeBlackouts((items) => {[m
+[32m+[m[32m      setBlackouts(items);[m
+[32m+[m[32m      setBlackoutsLoading(false);[m
+[32m+[m[32m    }, (error) => {[m
+[32m+[m[32m      setBlackoutsLoadError(error?.code === 'permission-denied' ? 'Permission denied for this account.' : (error?.message || 'Unknown Firestore error.'));[m
+[32m+[m[32m      setBlackoutsLoading(false);[m
+[32m+[m[32m    });[m
+[32m+[m[32m    const unsub4 = subscribeBlackoutReasons(setBlackoutReasons, (error) => {[m
+[32m+[m[32m      setSaveError(error?.code === 'permission-denied' ? 'Permission denied while loading blackout reasons.' : (error?.message || 'Unable to load blackout reasons.'));[m
+[32m+[m[32m    });[m
+[32m+[m[32m    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };[m
+[32m+[m[32m  }, [isAdmin]);[m
+[32m+[m
+[32m+[m[32m  const handleLogin = async (event) => {[m
+[32m+[m[32m    event.preventDefault();[m
+[32m+[m[32m    setLoginBusy(true);[m
+[32m+[m[32m    setAuthError('');[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);[m
+[32m+[m[32m      setLoginPassword('');[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Master sign-in failed:', error);[m
+[32m+[m[32m      setAuthError('Sign-in failed. Check your email and password, then try again.');[m
+[32m+[m[32m    } finally {[m
+[32m+[m[32m      setLoginBusy(false);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+ [m
+   const addName = async (list, name) => {[m
+     const trimmed = name.trim();[m
+[36m@@ -255,7 +509,39 @@[m [mexport default function App(){[m
+     setBusy(false);[m
+   };[m
+ [m
+[31m-  const approveRequest = (id) => patchRequest(id, { status: 'approved', updatedAt: Date.now() });[m
+[32m+[m[32m  const addCustomBlackoutReason = async (nextReason) => {[m
+[32m+[m[32m    const created = await createBlackoutReason(nextReason);[m
+[32m+[m[32m    setBlackoutReasons(prev => [...prev.filter(item => item.id !== created.id), created]);[m
+[32m+[m[32m    return created.name;[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const approveRequest = async (id) => {[m
+[32m+[m[32m    const target = requests.find(r => r.id === id);[m
+[32m+[m[32m    if (!target) return;[m
+[32m+[m[32m    const targetDates = Array.isArray(target.dates) ? target.dates : [];[m
+[32m+[m[32m    const blackoutDates = getBlackoutConflictDates(blackouts, targetDates);[m
+[32m+[m[32m    if (blackoutDates.length > 0) {[m
+[32m+[m[32m      alert(`Blackout date\n${formatFriendlyDateList(blackoutDates)} is unavailable: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.`);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    const teamConflicts = getTeamConflictDates({ requests, team: target.list, requestedDates: targetDates, ignoreRequestId: id });[m
+[32m+[m[32m    const overrideUsed = teamConflicts.length > 0 && isAdmin && masterConflictOverride;[m
+[32m+[m[32m    if (teamConflicts.length > 0 && !overrideUsed) {[m
+[32m+[m[32m      alert(`Holiday conflict\nSomeone from your team is already booked off on:\n${formatFriendlyDateList(teamConflicts)}\n\nYou cannot approve this date because only one colleague from your team can be off at a time. Use the master override to continue.`);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    setBusy(true);[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      await patchRequest(id, {[m
+[32m+[m[32m        status: 'approved',[m
+[32m+[m[32m        updatedAt: Date.now(),[m
+[32m+[m[32m        ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),[m
+[32m+[m[32m      });[m
+[32m+[m[32m    } finally {[m
+[32m+[m[32m      setBusy(false);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+   const denyRequest = (id) => patchRequest(id, { status: 'denied', updatedAt: Date.now() });[m
+   const deleteRequest = (id) => patchRequest(id, { status: 'deleted', updatedAt: Date.now() });[m
+ [m
+[36m@@ -263,26 +549,78 @@[m [mexport default function App(){[m
+     const name = (manualCustomName.trim() || manualName).trim();[m
+     const dates = Object.keys(manualDateFlags).filter(k=>manualDateFlags[k]).sort();[m
+     if(!name || dates.length === 0) return;[m
+[32m+[m
+[32m+[m[32m    const blackoutDates = getBlackoutConflictDates(blackouts, dates);[m
+[32m+[m[32m    if (blackoutDates.length > 0) {[m
+[32m+[m[32m      alert(`Blackout date\n${formatFriendlyDateList(blackoutDates)} is unavailable: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.`);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    const teamConflicts = getTeamConflictDates({ requests, team: manualList, requestedDates: dates });[m
+[32m+[m[32m    const overrideUsed = teamConflicts.length > 0 && isAdmin && masterConflictOverride;[m
+[32m+[m[32m    if (teamConflicts.length > 0 && !overrideUsed) {[m
+[32m+[m[32m      alert(`Holiday conflict\nSomeone from your team is already booked off on:\n${formatFriendlyDateList(teamConflicts)}\n\nYou cannot add this date because only one colleague from your team can be off at a time. Use the master override to continue.`);[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+     setBusy(true);[m
+[31m-    if(!(roster[manualList]||[]).includes(name)){[m
+[31m-      await saveRoster({ ...roster, [manualList]: [...(roster[manualList]||[]), name] });[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      if(!(roster[manualList]||[]).includes(name)){[m
+[32m+[m[32m        await saveRoster({ ...roster, [manualList]: [...(roster[manualList]||[]), name] });[m
+[32m+[m[32m      }[m
+[32m+[m[32m      await createRequest({[m
+[32m+[m[32m        name,[m
+[32m+[m[32m        list: manualList,[m
+[32m+[m[32m        dates,[m
+[32m+[m[32m        status: 'approved',[m
+[32m+[m[32m        manual: true,[m
+[32m+[m[32m        createdAt: Date.now(),[m
+[32m+[m[32m        updatedAt: Date.now(),[m
+[32m+[m[32m        ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),[m
+[32m+[m[32m      });[m
+[32m+[m[32m      setManualCustomName(''); setManualName(''); setManualDateFlags({});[m
+[32m+[m[32m    } finally {[m
+[32m+[m[32m      setBusy(false);[m
+     }[m
+[31m-    await createRequest({ name, list: manualList, dates, status: 'approved', manual: true, createdAt: Date.now(), updatedAt: Date.now() });[m
+[31m-    setManualCustomName(''); setManualName(''); setManualDateFlags({});[m
+[31m-    setBusy(false);[m
+   };[m
+ [m
+   const approvedByDate = {};[m
+   requests.filter(r => r.status === 'approved').forEach(r => {[m
+[31m-    r.dates.forEach(d => { approvedByDate[d] = approvedByDate[d] || []; approvedByDate[d].push(r); });[m
+[32m+[m[32m    (r.dates || []).forEach(d => { approvedByDate[d] = approvedByDate[d] || []; approvedByDate[d].push(r); });[m
+   });[m
+   const pending = requests.filter(r => r.status === 'pending').sort((a,b)=>a.createdAt-b.createdAt);[m
+[32m+[m[32m  const pendingByDate = {};[m
+[32m+[m[32m  pending.forEach(r => (r.dates || []).forEach(d => {[m
+[32m+[m[32m    pendingByDate[d] = pendingByDate[d] || []; pendingByDate[d].push(r);[m
+[32m+[m[32m  }));[m
+[32m+[m[32m  const blackoutByDate = {};[m
+[32m+[m[32m  blackouts.forEach(b => {[m
+[32m+[m[32m    const start = b.startDate || b.date || b.blackoutDate;[m
+[32m+[m[32m    const end = b.endDate || start;[m
+[32m+[m[32m    if(!start) return;[m
+[32m+[m[32m    dateRangeArray(start, end).forEach(d => {[m
+[32m+[m[32m      blackoutByDate[d] = blackoutByDate[d] || [];[m
+[32m+[m[32m      blackoutByDate[d].push(b);[m
+[32m+[m[32m    });[m
+[32m+[m[32m  });[m
+   const allSorted = [...requests].sort((a,b)=>b.updatedAt-a.updatedAt).filter(r => {[m
+     if(filterStatus !== 'all' && r.status !== filterStatus) return false;[m
+     if(filterList !== 'all' && r.list !== filterList) return false;[m
+     return true;[m
+   });[m
+ [m
+[32m+[m[32m  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-emerald-950 text-emerald-200">Checking authentication...</div>;[m
+[32m+[m[32m  if (!authUser) return <MasterLogin email={loginEmail} setEmail={setLoginEmail} password={loginPassword} setPassword={setLoginPassword} onSubmit={handleLogin} busy={loginBusy} error={authError} />;[m
+[32m+[m[32m  if (!isAdmin) return ([m
+[32m+[m[32m    <div className="min-h-screen flex items-center justify-center bg-emerald-950 p-6 text-emerald-50">[m
+[32m+[m[32m      <div className="w-full max-w-md rounded-2xl border border-red-800 bg-red-950/40 p-6 space-y-4">[m
+[32m+[m[32m        <h1 className="text-xl font-bold">Master access not provisioned</h1>[m
+[32m+[m[32m        <p className="text-sm text-red-200">This account is authenticated but is not listed as a master/admin in Firestore.</p>[m
+[32m+[m[32m        <button onClick={() => signOut(auth)} className="rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-100">Sign out</button>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m
+   return ([m
+     <div className="min-h-screen bg-gradient-to-b from-emerald-950 via-emerald-950 to-emerald-900 text-emerald-50">[m
+       <header className="bg-emerald-950/90 backdrop-blur border-b border-emerald-800 sticky top-0 z-10">[m
+[36m@@ -294,6 +632,7 @@[m [mexport default function App(){[m
+               <p className="text-[11px] text-emerald-400">Admin console</p>[m
+             </div>[m
+           </div>[m
+[32m+[m[32m          <button onClick={() => signOut(auth)} className="rounded-lg border border-emerald-700 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-900">Sign out</button>[m
+         </div>[m
+         <div className="max-w-5xl mx-auto px-4 pb-2 flex gap-1.5 flex-wrap">[m
+           {[[m
+[36m@@ -302,6 +641,7 @@[m [mexport default function App(){[m
+             { id:'allRequests', label:'All Requests', icon: ListChecks },[m
+             { id:'roster', label:'Colleagues', icon: Users },[m
+             { id:'manual', label:'Manual Approval', icon: PenSquare },[m
+[32m+[m[32m            { id:'blackouts', label:'Blackout Dates', icon: CalendarDays },[m
+           ].map(t => ([m
+             <button key={t.id} onClick={()=>setTab(t.id)}[m
+               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition ${tab===t.id ? 'bg-emerald-500 text-emerald-950' : 'bg-emerald-900 text-emerald-200 border border-emerald-800 hover:bg-emerald-800'}`}>[m
+[36m@@ -313,7 +653,6 @@[m [mexport default function App(){[m
+       </header>[m
+ [m
+       <main className="max-w-5xl mx-auto px-4 py-4 space-y-4">[m
+[31m-[m
+         {tab === 'notifications' && ([m
+           <div className="space-y-2">[m
+             <h2 className="text-lg font-bold">Pending requests</h2>[m
+[36m@@ -342,10 +681,11 @@[m [mexport default function App(){[m
+               <h2 className="text-lg font-bold">{MONTH_NAMES[viewMonth]} {viewYear}</h2>[m
+               <MonthJumpControls year={viewYear} month={viewMonth} onChange={(y,m)=>{setViewYear(y);setViewMonth(m);}} />[m
+             </div>[m
+[31m-            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} requests={requests} />[m
+[31m-            <div className="flex items-center gap-4 text-xs text-emerald-300">[m
+[32m+[m[32m            <CalendarGrid year={viewYear} month={viewMonth} approvedByDate={approvedByDate} pendingByDate={pendingByDate} blackoutByDate={blackoutByDate} />[m
+[32m+[m[32m            <div className="flex items-center gap-4 text-xs text-emerald-300 flex-wrap">[m
+               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 border border-amber-500 inline-block"/> GM</span>[m
+               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-black inline-block"/> George</span>[m
+[32m+[m[32m              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-700 border border-red-500 inline-block"/> Blackout</span>[m
+               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-400 border border-gray-500 inline-block"/> Pending</span>[m
+             </div>[m
+           </div>[m
+[36m@@ -455,6 +795,10 @@[m [mexport default function App(){[m
+                   className="w-full border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm" />[m
+               </div>[m
+             </div>[m
+[32m+[m[32m            <label className="flex items-center gap-2 text-sm text-emerald-200">[m
+[32m+[m[32m              <input type="checkbox" checked={masterConflictOverride} onChange={e => setMasterConflictOverride(e.target.checked)} className="h-4 w-4 rounded border-emerald-600 bg-emerald-950 text-emerald-500" />[m
+[32m+[m[32m              Master override for team conflict[m
+[32m+[m[32m            </label>[m
+             <DateBuilder dateFlags={manualDateFlags} setDateFlags={setManualDateFlags} />[m
+             <button onClick={submitManualApproval} disabled={busy}[m
+               className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40">[m
+[36m@@ -462,6 +806,66 @@[m [mexport default function App(){[m
+             </button>[m
+           </div>[m
+         )}[m
+[32m+[m
+[32m+[m[32m        {tab === 'blackouts' && ([m
+[32m+[m[32m          <BlackoutManager[m
+[32m+[m[32m            blackouts={blackouts}[m
+[32m+[m[32m            busy={busy}[m
+[32m+[m[32m            defaultReasons={['Christmas shutdown', 'Bank holiday', 'Company shutdown', 'Other']}[m
+[32m+[m[32m            customReasons={blackoutReasons}[m
+[32m+[m[32m            loading={blackoutsLoading}[m
+[32m+[m[32m            loadError={blackoutsLoadError}[m
+[32m+[m[32m            saveError={saveError}[m
+[32m+[m[32m            saveNotice={saveNotice}[m
+[32m+[m[32m            onSaveCustomReason={async (reasonText) => {[m
+[32m+[m[32m              try {[m
+[32m+[m[32m                const saved = await addCustomBlackoutReason(reasonText);[m
+[32m+[m[32m                setSaveNotice(`Saved blackout reason: ${saved}`);[m
+[32m+[m[32m                setSaveError('');[m
+[32m+[m[32m                return saved;[m
+[32m+[m[32m              } catch (error) {[m
+[32m+[m[32m                const message = error?.message || 'Unable to save the custom blackout reason.';[m
+[32m+[m[32m                setSaveError(message);[m
+[32m+[m[32m                throw error;[m
+[32m+[m[32m              }[m
+[32m+[m[32m            }}[m
+[32m+[m[32m            onAdd={async (startDate, endDate, reason) => {[m
+[32m+[m[32m              setBusy(true);[m
+[32m+[m[32m              setSaveError('');[m
+[32m+[m[32m              setSaveNotice('');[m
+[32m+[m[32m              try {[m
+[32m+[m[32m                const created = await createBlackout({ startDate, endDate, reason });[m
+[32m+[m[32m                if (created) {[m
+[32m+[m[32m                  setSaveNotice(`Blackout saved for ${startDate}${endDate && endDate !== startDate ? ` to ${endDate}` : ''}.`);[m
+[32m+[m[32m                  setBlackouts(prev => [...prev, created]);[m
+[32m+[m[32m                }[m
+[32m+[m[32m              } catch (error) {[m
+[32m+[m[32m                const message = error?.message || 'Unable to save blackout date. Please check your Firestore connection and permissions.';[m
+[32m+[m[32m                console.error('Failed to create blackout:', error);[m
+[32m+[m[32m                setSaveError(message);[m
+[32m+[m[32m                throw error;[m
+[32m+[m[32m              } finally {[m
+[32m+[m[32m                setBusy(false);[m
+[32m+[m[32m              }[m
+[32m+[m[32m            }}[m
+[32m+[m[32m            onDelete={async (id) => {[m
+[32m+[m[32m              setBusy(true);[m
+[32m+[m[32m              setSaveError('');[m
+[32m+[m[32m              setSaveNotice('');[m
+[32m+[m[32m              try {[m
+[32m+[m[32m                await deleteBlackout(id);[m
+[32m+[m[32m                setSaveNotice('Blackout date removed.');[m
+[32m+[m[32m              } catch (error) {[m
+[32m+[m[32m                const message = error?.message || 'Unable to remove blackout date.';[m
+[32m+[m[32m                console.error('Failed to delete blackout:', error);[m
+[32m+[m[32m                setSaveError(message);[m
+[32m+[m[32m                throw error;[m
+[32m+[m[32m              } finally {[m
+[32m+[m[32m                setBusy(false);[m
+[32m+[m[32m              }[m
+[32m+[m[32m            }}[m
+[32m+[m[32m          />[m
+[32m+[m[32m        )}[m
+       </main>[m
+     </div>[m
+   );[m

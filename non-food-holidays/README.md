@@ -76,7 +76,43 @@ Easiest option: **Vercel** (free tier is plenty for this).
 (Netlify works the same way if you'd rather use that — same env vars,
 same per-folder deploy.)
 
-## 5. Get it onto devices
+## 5. Provision the master account
+
+The Master App uses Firebase Authentication with Email/Password. The
+Companion App signs colleagues in anonymously so its existing name-selection
+flow remains unchanged. Firestore, rather than the frontend, decides whether
+an authenticated user is a master.
+
+1. In Firebase Console, open **Authentication → Sign-in method**, enable
+   **Email/Password** and **Anonymous**, then save. Email/Password is for the
+   Master App; Anonymous keeps the Companion App's existing colleague flow
+   unchanged while giving it authenticated read access.
+2. Open **Authentication → Users → Add user**. Create the master account's
+   email address and password. Keep the password in your password manager;
+   never put it in this repository, Codespaces, or frontend configuration.
+3. In the Users list, copy that account's **User UID**.
+4. Open **Firestore Database → Data**, create a top-level collection named
+   `admins`, and create a document whose document ID is exactly the copied
+   UID.
+5. Add this field to that document:
+
+   ```text
+   role: "master"
+   ```
+
+   The accepted role values are `master` and `admin`. Do not create this
+   document from the app; the deployed rules intentionally deny client
+   writes to `admins`.
+6. Paste the repository's `firestore.rules` into **Firestore Database →
+   Rules** and click **Publish**. This is required because Rules are deployed
+   separately from the web apps.
+
+Open the Master App, sign in with the account created in step 2, and confirm
+that the admin console appears. Only that authenticated UID can create,
+update, or delete documents in `blackouts`. Authenticated colleagues can read
+blackouts, but cannot write them.
+
+## 6. Get it onto devices
 
 Once deployed, each URL is installable as an app:
 
