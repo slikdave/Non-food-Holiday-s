@@ -442,25 +442,48 @@ export default function App(){
   const [filterList, setFilterList] = useState('all');
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (user) => {
+    let cancelled = false;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (cancelled) return;
+
       setAuthUser(user);
-      setIsAdmin(false);
+
       if (!user) {
-        setAuthLoading(false);
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+          console.error("Anonymous Master sign-in failed:", error);
+          setAuthError("Unable to open the Master app.");
+          setAuthLoading(false);
+        }
         return;
       }
+
       try {
-        const adminSnap = await getDoc(doc(db, 'admins', user.uid));
-        setIsAdmin(adminSnap.exists() && ['admin', 'master'].includes(String(adminSnap.data().role || '').toLowerCase()));
+        const adminSnap = await getDoc(doc(db, "admins", user.uid));
+        if (!cancelled) {
+          setIsAdmin(
+            adminSnap.exists() &&
+            ["admin", "master"].includes(String(adminSnap.data()?.role || "").toLowerCase())
+          );
+        }
       } catch (error) {
-        console.error('Admin authorization check failed:', error);
-        setAuthError('Unable to verify master access. Check Firestore permissions and try again.');
+        console.error("Admin authorization check failed:", error);
+        if (!cancelled) {
+          setAuthError("Unable to verify Master access.");
+          setIsAdmin(false);
+        }
       } finally {
-        setAuthLoading(false);
+        if (!cancelled) setAuthLoading(false);
       }
     });
-  }, []);
 
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
   useEffect(() => {
     if (!isAdmin) return undefined;
     setBlackoutsLoading(true);
@@ -480,22 +503,7 @@ export default function App(){
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, [isAdmin]);
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    setLoginBusy(true);
-    setAuthError('');
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
-      setLoginPassword('');
-    } catch (error) {
-      console.error('Master sign-in failed:', error);
-      setAuthError('Sign-in failed. Check your email and password, then try again.');
-    } finally {
-      setLoginBusy(false);
-    }
-  };
-
-  const addName = async (list, name) => {
+    const addName = async (list, name) => {
     const trimmed = name.trim();
     if(!trimmed || (roster[list]||[]).includes(trimmed)) return;
     setBusy(true);
@@ -548,7 +556,14 @@ export default function App(){
   const submitManualApproval = async () => {
     const name = (manualCustomName.trim() || manualName).trim();
     const dates = Object.keys(manualDateFlags).filter(k=>manualDateFlags[k]).sort();
-    if(!name || dates.length === 0) return;
+
+    setSaveError('');
+    setSaveNotice('');
+
+    if(!name || dates.length === 0){
+      setSaveError('Please select a colleague and add at least one date.');
+      return;
+    }
 
     const blackoutDates = getBlackoutConflictDates(blackouts, dates);
     if (blackoutDates.length > 0) {
@@ -568,6 +583,7 @@ export default function App(){
       if(!(roster[manualList]||[]).includes(name)){
         await saveRoster({ ...roster, [manualList]: [...(roster[manualList]||[]), name] });
       }
+
       await createRequest({
         name,
         list: manualList,
@@ -578,7 +594,16 @@ export default function App(){
         updatedAt: Date.now(),
         ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
       });
-      setManualCustomName(''); setManualName(''); setManualDateFlags({});
+
+      setManualCustomName('');
+      setManualName('');
+      setManualDateFlags({});
+      setMasterConflictOverride(false);
+      setSaveNotice('Approved holiday entry added successfully.');
+    } catch (error) {
+      console.error('Manual approval failed:', error);
+      const code = error?.code ? ` (${error.code})` : '';
+      setSaveError(`Could not add the approved entry${code}: ${error?.message || 'Unknown error.'}`);
     } finally {
       setBusy(false);
     }
@@ -610,7 +635,7 @@ export default function App(){
   });
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-emerald-950 text-emerald-200">Checking authentication...</div>;
-  if (!authUser) return <MasterLogin email={loginEmail} setEmail={setLoginEmail} password={loginPassword} setPassword={setLoginPassword} onSubmit={handleLogin} busy={loginBusy} error={authError} />;
+  if (!authUser) return <div style={{padding:24}}>Opening Master app…</div>;
   if (!isAdmin) return (
     <div className="min-h-screen flex items-center justify-center bg-emerald-950 p-6 text-emerald-50">
       <div className="w-full max-w-md rounded-2xl border border-red-800 bg-red-950/40 p-6 space-y-4">
@@ -799,7 +824,17 @@ export default function App(){
               <input type="checkbox" checked={masterConflictOverride} onChange={e => setMasterConflictOverride(e.target.checked)} className="h-4 w-4 rounded border-emerald-600 bg-emerald-950 text-emerald-500" />
               Master override for team conflict
             </label>
-            <DateBuilder dateFlags={manualDateFlags} setDateFlags={setManualDateFlags} />
+            {saveError && (
+            <div className="rounded-lg border border-red-500 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {saveError}
+            </div>
+          )}
+          {saveNotice && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+              {saveNotice}
+            </div>
+          )}
+          {marker}
             <button onClick={submitManualApproval} disabled={busy}
               className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40">
               Add approved entry
