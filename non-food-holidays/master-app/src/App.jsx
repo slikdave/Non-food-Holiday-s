@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus, Bell, CalendarDays, ListChecks, Users, PenSquare, Check, Trash2, Clock } from 'lucide-react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { subscribeRoster, subscribeRequests, subscribeBlackouts, subscribeBlackoutReasons, saveRoster, createRequest, patchRequest, createBlackout, deleteBlackout, createBlackoutReason } from './data';
 import { auth, db } from './firebase';
