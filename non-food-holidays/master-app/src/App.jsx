@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus, Bell, CalendarDays, ListChecks, Users, PenSquare, Check, Trash2, Clock } from 'lucide-react';
-import { onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { subscribeRoster, subscribeRequests, subscribeBlackouts, subscribeBlackoutReasons, saveRoster, createRequest, patchRequest, createBlackout, deleteBlackout, createBlackoutReason } from './data';
 import { auth, db } from './firebase';
@@ -442,48 +442,25 @@ export default function App(){
   const [filterList, setFilterList] = useState('all');
 
   useEffect(() => {
-    let cancelled = false;
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (cancelled) return;
-
+    return onAuthStateChanged(auth, async (user) => {
       setAuthUser(user);
-
+      setIsAdmin(false);
       if (!user) {
-        try {
-          await signInAnonymously(auth);
-        } catch (error) {
-          console.error("Anonymous Master sign-in failed:", error);
-          setAuthError("Unable to open the Master app.");
-          setAuthLoading(false);
-        }
+        setAuthLoading(false);
         return;
       }
-
       try {
-        const adminSnap = await getDoc(doc(db, "admins", user.uid));
-        if (!cancelled) {
-          setIsAdmin(
-            adminSnap.exists() &&
-            ["admin", "master"].includes(String(adminSnap.data()?.role || "").toLowerCase())
-          );
-        }
+        const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+        setIsAdmin(adminSnap.exists() && ['admin', 'master'].includes(String(adminSnap.data().role || '').toLowerCase()));
       } catch (error) {
-        console.error("Admin authorization check failed:", error);
-        if (!cancelled) {
-          setAuthError("Unable to verify Master access.");
-          setIsAdmin(false);
-        }
+        console.error('Admin authorization check failed:', error);
+        setAuthError('Unable to verify master access. Check Firestore permissions and try again.');
       } finally {
-        if (!cancelled) setAuthLoading(false);
+        setAuthLoading(false);
       }
     });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
   }, []);
+
   useEffect(() => {
     if (!isAdmin) return undefined;
     setBlackoutsLoading(true);
@@ -503,7 +480,22 @@ export default function App(){
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, [isAdmin]);
 
-    const addName = async (list, name) => {
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setLoginBusy(true);
+    setAuthError('');
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
+      setLoginPassword('');
+    } catch (error) {
+      console.error('Master sign-in failed:', error);
+      setAuthError('Sign-in failed. Check your email and password, then try again.');
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const addName = async (list, name) => {
     const trimmed = name.trim();
     if(!trimmed || (roster[list]||[]).includes(trimmed)) return;
     setBusy(true);
@@ -635,7 +627,7 @@ export default function App(){
   });
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-emerald-950 text-emerald-200">Checking authentication...</div>;
-  if (!authUser) return <div style={{padding:24}}>Opening Master app…</div>;
+  if (!authUser) return <MasterLogin email={loginEmail} setEmail={setLoginEmail} password={loginPassword} setPassword={setLoginPassword} onSubmit={handleLogin} busy={loginBusy} error={authError} />;
   if (!isAdmin) return (
     <div className="min-h-screen flex items-center justify-center bg-emerald-950 p-6 text-emerald-50">
       <div className="w-full max-w-md rounded-2xl border border-red-800 bg-red-950/40 p-6 space-y-4">
@@ -834,7 +826,6 @@ export default function App(){
               {saveNotice}
             </div>
           )}
-          {marker}
             <button onClick={submitManualApproval} disabled={busy}
               className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40">
               Add approved entry
