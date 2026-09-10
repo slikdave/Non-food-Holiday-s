@@ -169,11 +169,6 @@ function CalendarGrid({ year, month, approvedByDate = {}, pendingByDate = {}, bl
                       BLACKOUT
                     </div>
                   )}
-                  {pending.length > 0 && (
-                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-gray-500/50 text-gray-100 border border-gray-400/40 truncate" title={pending.map(p => `${p.name} — Pending`).join(', ')}>
-                      Pending
-                    </div>
-                  )}
                   <div className="flex flex-col gap-0.5">
                     {entries.slice(0,3).map((e,i) => {
                       const isPending = e.status === 'pending';
