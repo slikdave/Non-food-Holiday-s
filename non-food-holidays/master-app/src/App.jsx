@@ -165,8 +165,8 @@ function CalendarGrid({ year, month, approvedByDate = {}, pendingByDate = {}, bl
                     {fromISO(iso).getDate()}
                   </div>
                   {blackout.length > 0 && (
-                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-red-500/25 text-red-200 border border-red-500/40 truncate font-semibold" title={blackout.map(b => b.reason || 'Blackout date').join(', ')}>
-                      BLACKOUT
+                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-red-700 text-white border border-red-500 truncate font-semibold" title={blackout.map(b => b.reason || 'Blackout date').join(', ')}>
+                      {blackout.map(b => b.reason || 'Blackout date').join(', ')}
                     </div>
                   )}
                   <div className="flex flex-col gap-0.5">
