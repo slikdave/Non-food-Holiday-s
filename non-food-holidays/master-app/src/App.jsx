@@ -807,6 +807,7 @@ export default function App(){
                   className="w-full border border-emerald-700 bg-emerald-950 rounded-lg px-2 py-1.5 text-sm" />
               </div>
             </div>
+            <DateBuilder dateFlags={manualDateFlags} setDateFlags={setManualDateFlags} />
             <label className="flex items-center gap-2 text-sm text-emerald-200">
               <input type="checkbox" checked={masterConflictOverride} onChange={e => setMasterConflictOverride(e.target.checked)} className="h-4 w-4 rounded border-emerald-600 bg-emerald-950 text-emerald-500" />
               Master override for team conflict
