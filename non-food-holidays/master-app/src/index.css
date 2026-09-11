@@ -721,3 +721,10 @@ main button[class*="bg-emerald-600"] {
   color: #ffffff !important;
 }
 
+
+/* MASTER BACKGROUND - APPROVED COLOUR */
+html,
+body,
+#root {
+  background: #0D9478 !important;
+}
