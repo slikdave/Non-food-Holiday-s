@@ -516,12 +516,17 @@ export default function App(){
     if (!target) return;
     const targetDates = Array.isArray(target.dates) ? target.dates : [];
     const blackoutDates = getBlackoutConflictDates(blackouts, targetDates);
+    let blackoutOverrideUsed = false;
     if (blackoutDates.length > 0) {
-      alert(`Blackout date\n${formatFriendlyDateList(blackoutDates)} is unavailable: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.`);
-      return;
+      const confirmed = window.confirm(
+        `Blackout date\n${formatFriendlyDateList(blackoutDates)}: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.\n\nThis date is restricted for colleagues. As Master, you can override the blackout when required.\n\nOverride blackout and continue?`
+      );
+      if (!confirmed) return;
+      blackoutOverrideUsed = true;
     }
     const teamConflicts = getTeamConflictDates({ requests, team: target.list, requestedDates: targetDates, ignoreRequestId: id });
     const overrideUsed = teamConflicts.length > 0 && isAdmin && masterConflictOverride;
+    const masterOverrideUsed = overrideUsed || blackoutOverrideUsed;
     if (teamConflicts.length > 0 && !overrideUsed) {
       alert(`Holiday conflict\nSomeone from your team is already booked off on:\n${formatFriendlyDateList(teamConflicts)}\n\nYou cannot approve this date because only one colleague from your team can be off at a time. Use the master override to continue.`);
       return;
@@ -531,7 +536,7 @@ export default function App(){
       await patchRequest(id, {
         status: 'approved',
         updatedAt: Date.now(),
-        ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
+        ...(masterOverrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
       });
     } finally {
       setBusy(false);
@@ -554,13 +559,18 @@ export default function App(){
     }
 
     const blackoutDates = getBlackoutConflictDates(blackouts, dates);
+    let blackoutOverrideUsed = false;
     if (blackoutDates.length > 0) {
-      alert(`Blackout date\n${formatFriendlyDateList(blackoutDates)} is unavailable: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.`);
-      return;
+      const confirmed = window.confirm(
+        `Blackout date\n${formatFriendlyDateList(blackoutDates)}: ${getBlackoutReasonsForDates(blackouts, blackoutDates).join(', ')}.\n\nThis date is restricted for colleagues. As Master, you can override the blackout when required.\n\nOverride blackout and continue?`
+      );
+      if (!confirmed) return;
+      blackoutOverrideUsed = true;
     }
 
     const teamConflicts = getTeamConflictDates({ requests, team: manualList, requestedDates: dates });
     const overrideUsed = teamConflicts.length > 0 && isAdmin && masterConflictOverride;
+    const masterOverrideUsed = overrideUsed || blackoutOverrideUsed;
     if (teamConflicts.length > 0 && !overrideUsed) {
       alert(`Holiday conflict\nSomeone from your team is already booked off on:\n${formatFriendlyDateList(teamConflicts)}\n\nYou cannot add this date because only one colleague from your team can be off at a time. Use the master override to continue.`);
       return;
@@ -580,7 +590,7 @@ export default function App(){
         manual: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
+        ...(masterOverrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
       });
 
       setManualCustomName('');

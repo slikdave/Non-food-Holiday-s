@@ -1,6 +1,6 @@
 import { auth, db } from './firebase';
 import {
-  doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc,
+  doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, getDocs,
 } from 'firebase/firestore';
 
 const ROSTER_DOC = doc(db, 'meta', 'roster');
@@ -24,9 +24,44 @@ export function subscribeRequests(cb) {
   }, (err) => console.error('requests subscribe error', err));
 }
 
+function toDateOnly(value) {
+  const [y, m, d] = String(value || '').split('-').map(Number);
+  return y && m && d ? new Date(y, m - 1, d) : null;
+}
+
+function datesOverlapBlackout(requestedDates, blackouts) {
+  return requestedDates.some((iso) => {
+    const requested = toDateOnly(iso);
+    if (!requested) return false;
+
+    return blackouts.some((blackout) => {
+      const start = toDateOnly(blackout.startDate || blackout.date || blackout.blackoutDate);
+      const end = toDateOnly(blackout.endDate || blackout.startDate || blackout.date || blackout.blackoutDate);
+      if (!start || !end) return false;
+      return requested >= start && requested <= end;
+    });
+  });
+}
+
 export async function createRequest(fields) {
   const user = auth.currentUser;
   if (!user) throw new Error('You must be signed in to create a request.');
+
+  // Colleague requests must always respect blackout dates.
+  // Master-created manual entries are deliberately allowed so the Master
+  // can override a blackout when an exceptional circumstance requires it.
+  if (!fields.manual) {
+    const blackoutSnap = await getDocs(BLACKOUTS_COL);
+    const blackouts = blackoutSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const requestedDates = Array.isArray(fields.dates)
+      ? fields.dates.map((d) => String(d))
+      : [];
+
+    if (datesOverlapBlackout(requestedDates, blackouts)) {
+      throw new Error('One or more selected dates are blackout dates and cannot be requested by colleagues.');
+    }
+  }
+
   await addDoc(REQUESTS_COL, { ...fields, createdBy: user.uid });
 }
 
