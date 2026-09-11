@@ -169,11 +169,6 @@ function CalendarGrid({ year, month, approvedByDate = {}, pendingByDate = {}, bl
                       BLACKOUT
                     </div>
                   )}
-                  {pending.length > 0 && (
-                    <div className="text-[9px] leading-tight rounded px-1 py-0.5 mb-0.5 bg-gray-500/50 text-gray-100 border border-gray-400/40 truncate" title={pending.map(p => `${p.name} — Pending`).join(', ')}>
-                      Pending
-                    </div>
-                  )}
                   <div className="flex flex-col gap-0.5">
                     {entries.slice(0,3).map((e,i) => {
                       const isPending = e.status === 'pending';
@@ -548,7 +543,14 @@ export default function App(){
   const submitManualApproval = async () => {
     const name = (manualCustomName.trim() || manualName).trim();
     const dates = Object.keys(manualDateFlags).filter(k=>manualDateFlags[k]).sort();
-    if(!name || dates.length === 0) return;
+
+    setSaveError('');
+    setSaveNotice('');
+
+    if(!name || dates.length === 0){
+      setSaveError('Please select a colleague and add at least one date.');
+      return;
+    }
 
     const blackoutDates = getBlackoutConflictDates(blackouts, dates);
     if (blackoutDates.length > 0) {
@@ -568,6 +570,7 @@ export default function App(){
       if(!(roster[manualList]||[]).includes(name)){
         await saveRoster({ ...roster, [manualList]: [...(roster[manualList]||[]), name] });
       }
+
       await createRequest({
         name,
         list: manualList,
@@ -578,7 +581,16 @@ export default function App(){
         updatedAt: Date.now(),
         ...(overrideUsed ? { masterOverride: true, overrideBy: authUser.uid, overrideAt: Date.now() } : {}),
       });
-      setManualCustomName(''); setManualName(''); setManualDateFlags({});
+
+      setManualCustomName('');
+      setManualName('');
+      setManualDateFlags({});
+      setMasterConflictOverride(false);
+      setSaveNotice('Approved holiday entry added successfully.');
+    } catch (error) {
+      console.error('Manual approval failed:', error);
+      const code = error?.code ? ` (${error.code})` : '';
+      setSaveError(`Could not add the approved entry${code}: ${error?.message || 'Unknown error.'}`);
     } finally {
       setBusy(false);
     }
@@ -799,7 +811,16 @@ export default function App(){
               <input type="checkbox" checked={masterConflictOverride} onChange={e => setMasterConflictOverride(e.target.checked)} className="h-4 w-4 rounded border-emerald-600 bg-emerald-950 text-emerald-500" />
               Master override for team conflict
             </label>
-            <DateBuilder dateFlags={manualDateFlags} setDateFlags={setManualDateFlags} />
+            {saveError && (
+            <div className="rounded-lg border border-red-500 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {saveError}
+            </div>
+          )}
+          {saveNotice && (
+            <div className="rounded-lg border border-emerald-500 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+              {saveNotice}
+            </div>
+          )}
             <button onClick={submitManualApproval} disabled={busy}
               className="px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40">
               Add approved entry
