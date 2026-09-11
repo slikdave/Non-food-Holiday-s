@@ -320,7 +320,7 @@ const reasonOptions = [...new Set([
       alert('Please enter a custom blackout reason before saving it.');
       return;
     }
-    if ((customReasons || []).some(item => item.name.toLowerCase() === next.toLowerCase())) {
+    if ((customReasons || []).some(item => item.disabled !== true && item.name.toLowerCase() === next.toLowerCase())) {
       setReason(next);
       setCustomReason(next);
       return;
