@@ -82,7 +82,7 @@ function getBlackoutReasonsForDates(blackouts = [], dates = []) {
       blackout.startDate || blackout.date || blackout.blackoutDate,
       blackout.endDate || blackout.startDate || blackout.date || blackout.blackoutDate,
     ).includes(String(date)));
-    return match?.reason || 'Blackout date';
+    return match?.reason || 'Restricted Dates date';
   });
 }
 
@@ -439,7 +439,7 @@ export default function App(){
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-green-700">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-400 border border-amber-500 inline-block" />GM</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-black border border-black inline-block" />George</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-600/20 border border-red-400/40 inline-block" />Blackout</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-600/20 border border-red-400/40 inline-block" />Restricted</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-400 border border-gray-500 inline-block" />Pending</span>
             </div>
           </div>

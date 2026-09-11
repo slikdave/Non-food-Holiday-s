@@ -92,7 +92,7 @@ function getBlackoutReasonsForDates(blackouts = [], dates = []) {
       blackout.startDate || blackout.date || blackout.blackoutDate,
       blackout.endDate || blackout.startDate || blackout.date || blackout.blackoutDate,
     ).includes(String(date)));
-    return match?.reason || 'Blackout date';
+    return match?.reason || 'Restricted Dates date';
   });
 }
 
@@ -283,7 +283,17 @@ function BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons
     }
   };
 
-const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons || []).map(item => item.name)])];
+const reasonOptions = [...new Set([
+      ...(defaultReasons || []).filter(name =>
+        !(customReasons || []).some(item =>
+          item.name?.trim().toLowerCase() === String(name).trim().toLowerCase() &&
+          item.disabled === true
+        )
+      ),
+      ...(customReasons || [])
+        .filter(item => item.disabled !== true)
+        .map(item => item.name)
+    ])];
 
   const submit = async (e) => {
     e.preventDefault();
@@ -392,9 +402,9 @@ const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons 
           {reasonOptions.map((option) => (
             <div
               key={option}
-              className="flex items-center justify-between gap-3 rounded-lg border border-emerald-900 bg-emerald-950/50 px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-lg border border-emerald-700 bg-emerald-100 px-3 py-2"
             >
-              <span className="text-sm text-emerald-200">{option}</span>
+              <span className="text-sm font-semibold text-emerald-900">{option}</span>
               <button
                 type="button"
                 onClick={() => removeReason(option)}
@@ -441,7 +451,8 @@ const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons 
                 <div key={b.id} className="flex w-full flex-col gap-3 rounded-lg border border-red-800 bg-red-950/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="font-semibold text-emerald-50">
-                      {dateText} <span className="text-emerald-400">—</span> {b.reason || 'Blackout'}
+                      <div className="font-semibold" style={{ color: "#064E3B" }}>{dateText}</div>
+                      <span className="text-sm" style={{ color: "#047857" }}>{b.reason || "Blackout"}</span>
                     </div>
                   </div>
                   <button type="button" disabled={busy} onClick={() => onDelete(b.id)} className="shrink-0 rounded-lg border border-red-500 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">
