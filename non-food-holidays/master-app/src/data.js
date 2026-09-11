@@ -81,12 +81,62 @@ export async function createBlackoutReason(name) {
   const cleaned = String(name || '').trim().replace(/\s+/g, ' ');
   if (!user) throw new Error('You must be signed in as a master to save a blackout reason.');
   if (!cleaned) throw new Error('Custom blackout reason cannot be empty.');
+
   const reasonRef = doc(BLACKOUT_REASONS_COL, reasonDocumentId(cleaned));
   const existing = await getDoc(reasonRef);
-  if (existing.exists()) throw new Error('That blackout reason already exists.');
-  await setDoc(reasonRef, { name: cleaned, createdAt: Date.now(), createdBy: user.uid });
-  return { id: reasonRef.id, name: cleaned, createdAt: Date.now(), createdBy: user.uid };
+
+  if (existing.exists()) {
+    const existingData = existing.data() || {};
+    if (existingData.disabled === true) {
+      await setDoc(reasonRef, {
+        name: cleaned,
+        disabled: false,
+        updatedAt: Date.now(),
+        updatedBy: user.uid,
+      }, { merge: true });
+      return { id: reasonRef.id, name: cleaned, disabled: false };
+    }
+    throw new Error('That blackout reason already exists.');
+  }
+
+  const now = Date.now();
+  await setDoc(reasonRef, {
+    name: cleaned,
+    disabled: false,
+    createdAt: now,
+    createdBy: user.uid,
+  });
+
+  return { id: reasonRef.id, name: cleaned, disabled: false, createdAt: now, createdBy: user.uid };
 }
+
+export async function deleteBlackoutReason(name) {
+  const user = auth.currentUser;
+  const cleaned = String(name || '').trim().replace(/\s+/g, ' ');
+
+  if (!user) throw new Error('You must be signed in as a master to remove a blackout reason.');
+  if (!cleaned) throw new Error('Blackout reason cannot be empty.');
+
+  const reasonRef = doc(BLACKOUT_REASONS_COL, reasonDocumentId(cleaned));
+
+  await setDoc(reasonRef, {
+    name: cleaned,
+    disabled: true,
+    updatedAt: Date.now(),
+    updatedBy: user.uid,
+  }, { merge: true });
+
+  return {
+    id: reasonRef.id,
+    name: cleaned,
+    disabled: true
+  };
+}
+
+
+
+
+
 
 // device-specific storage (genuinely per-browser/per-device, no account involved)
 export function readLocal(key, fallback) {

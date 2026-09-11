@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Plus, Bell, CalendarDays, ListChecks, Users, PenSquare, Check, Trash2, Clock } from 'lucide-react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { subscribeRoster, subscribeRequests, subscribeBlackouts, subscribeBlackoutReasons, saveRoster, createRequest, patchRequest, createBlackout, deleteBlackout, createBlackoutReason } from './data';
+import { subscribeRoster, subscribeRequests, subscribeBlackouts, subscribeBlackoutReasons, saveRoster, createRequest, patchRequest, createBlackout,
+  deleteBlackoutReason, deleteBlackout, createBlackoutReason } from './data';
 import { auth, db } from './firebase';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -255,7 +256,34 @@ function BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons
   const [reason, setReason] = useState('');
   const [customReason, setCustomReason] = useState('');
 
-  const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons || []).map(item => item.name)])];
+    const [reasonBusy, setReasonBusy] = useState('');
+  const [reasonError, setReasonError] = useState('');
+
+  const removeReason = async (reasonName) => {
+    if (!reasonName) return;
+
+    const confirmed = window.confirm(
+      `Remove "${reasonName}" from the blackout reason dropdown?\n\nExisting blackout dates using this reason will NOT be deleted.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setReasonBusy(reasonName);
+      setReasonError('');
+      await deleteBlackoutReason(reasonName);
+
+      if (reason === reasonName) {
+        setReason('');
+      }
+    } catch (err) {
+      setReasonError(err?.message || 'Could not remove that blackout reason.');
+    } finally {
+      setReasonBusy('');
+    }
+  };
+
+const reasonOptions = [...new Set([...(defaultReasons || []), ...(customReasons || []).map(item => item.name)])];
 
   const submit = async (e) => {
     e.preventDefault();
@@ -348,6 +376,38 @@ function BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons
         <button type="submit" disabled={busy || !startDate || !(reason === 'custom' ? customReason.trim() : reason.trim())} className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Adding...' : 'Add blackout date'}</button>
       </form>
 
+      <section className="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/40 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-emerald-100">Manage blackout reasons</h3>
+          <span className="text-xs text-emerald-400">Remove from dropdown</span>
+        </div>
+
+        {reasonError && (
+          <div className="mt-2 rounded-lg border border-red-800 bg-red-950/40 p-2 text-sm text-red-300">
+            {reasonError}
+          </div>
+        )}
+
+        <div className="mt-3 space-y-2">
+          {reasonOptions.map((option) => (
+            <div
+              key={option}
+              className="flex items-center justify-between gap-3 rounded-lg border border-emerald-900 bg-emerald-950/50 px-3 py-2"
+            >
+              <span className="text-sm text-emerald-200">{option}</span>
+              <button
+                type="button"
+                onClick={() => removeReason(option)}
+                disabled={reasonBusy === option}
+                className="rounded-lg border border-red-700 px-3 py-1 text-sm text-red-300 hover:bg-red-950 disabled:opacity-50"
+              >
+                {reasonBusy === option ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="rounded-xl border border-emerald-800 bg-emerald-900/50 p-4">
         <h3 className="mb-3 text-sm font-bold text-emerald-100">Current blackout dates</h3>
         {loading ? (
@@ -361,13 +421,32 @@ function BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons
             {blackouts.map((b) => {
               const from = b.startDate || b.date || b.blackoutDate || '';
               const to = b.endDate || from;
+              const formatBlackoutDate = (value) => {
+                if (!value) return '';
+                const parts = String(value).split('-').map(Number);
+                if (parts.length !== 3 || parts.some(Number.isNaN)) return String(value);
+                const [year, month, day] = parts;
+                return new Intl.DateTimeFormat('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                }).format(new Date(year, month - 1, day));
+              };
+
+              const dateText = to !== from
+                ? `${formatBlackoutDate(from)} – ${formatBlackoutDate(to)}`
+                : formatBlackoutDate(from);
+
               return (
-                <div key={b.id} className="flex w-full flex-col gap-3 rounded-lg border border-emerald-800 bg-emerald-950/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div key={b.id} className="flex w-full flex-col gap-3 rounded-lg border border-red-800 bg-red-950/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <div className="font-semibold text-emerald-100">{from}{to && to !== from ? ` – ${to}` : ''}</div>
-                    <div className="text-sm text-emerald-400">{b.reason || 'Blackout'}</div>
+                    <div className="font-semibold text-emerald-50">
+                      {dateText} <span className="text-emerald-400">—</span> {b.reason || 'Blackout'}
+                    </div>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => onDelete(b.id)} className="shrink-0 rounded-lg border border-red-500 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">Remove</button>
+                  <button type="button" disabled={busy} onClick={() => onDelete(b.id)} className="shrink-0 rounded-lg border border-red-500 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">
+                    Remove
+                  </button>
                 </div>
               );
             })}
