@@ -435,6 +435,7 @@ export default function App(){
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterList, setFilterList] = useState('all');
+  const [filterColleague, setFilterColleague] = useState('all');
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
@@ -615,9 +616,11 @@ export default function App(){
       blackoutByDate[d].push(b);
     });
   });
+  const allColleagues = [...new Set([...(roster.GM || []), ...(roster.George || [])])].sort((a,b)=>a.localeCompare(b));
   const allSorted = [...requests].sort((a,b)=>b.updatedAt-a.updatedAt).filter(r => {
     if(filterStatus !== 'all' && r.status !== filterStatus) return false;
     if(filterList !== 'all' && r.list !== filterList) return false;
+    if(filterColleague !== 'all' && r.name !== filterColleague) return false;
     return true;
   });
 
@@ -719,6 +722,10 @@ export default function App(){
                 <option value="all">Both lists</option>
                 <option value="GM">GM</option>
                 <option value="George">George</option>
+              </select>
+              <select value={filterColleague} onChange={e=>setFilterColleague(e.target.value)} className="text-sm rounded-lg border border-emerald-700 bg-emerald-950 px-2 py-1.5">
+                <option value="all">All colleagues</option>
+                {allColleagues.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
             </div>
             {allSorted.length === 0 && <p className="text-sm text-emerald-400">No requests match this filter.</p>}
