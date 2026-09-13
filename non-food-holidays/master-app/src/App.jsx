@@ -33,7 +33,7 @@ function buildMonthMatrix(year, month){
   for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
   return weeks;
 }
-function fmtShort(iso){ const d = fromISO(iso); return `${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
+function fmtShort(iso){ const d = fromISO(iso); return `${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getDate()} ${String(d.getFullYear()).slice(-2)}`; }
 function formatDatesSummary(dates){
   if(!dates || dates.length===0) return '';
   const sorted = [...dates].sort();
@@ -271,10 +271,17 @@ function BlackoutManager({ blackouts = [], onAdd, onDelete, busy, defaultReasons
     try {
       setReasonBusy(reasonName);
       setReasonError('');
-      await deleteBlackoutReason(reasonName);
+      const removed = await deleteBlackoutReason(reasonName);
+
+      setBlackoutReasons(prev => prev.map(item =>
+        item.id === removed.id ? { ...item, disabled: true } : item
+      ));
 
       if (reason === reasonName) {
         setReason('');
+      }
+      if (customReason.trim().toLowerCase() === reasonName.trim().toLowerCase()) {
+        setCustomReason('');
       }
     } catch (err) {
       setReasonError(err?.message || 'Could not remove that blackout reason.');
@@ -526,6 +533,7 @@ export default function App(){
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterList, setFilterList] = useState('all');
   const [filterColleague, setFilterColleague] = useState('all');
+  const [filterPendingColleague, setFilterPendingColleague] = useState('all');
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
@@ -701,7 +709,10 @@ export default function App(){
   requests.filter(r => r.status === 'approved').forEach(r => {
     (r.dates || []).forEach(d => { approvedByDate[d] = approvedByDate[d] || []; approvedByDate[d].push(r); });
   });
-  const pending = requests.filter(r => r.status === 'pending').sort((a,b)=>a.createdAt-b.createdAt);
+  const pending = requests
+    .filter(r => r.status === 'pending')
+    .filter(r => filterPendingColleague === 'all' || r.name === filterPendingColleague)
+    .sort((a,b)=>a.createdAt-b.createdAt);
   const pendingByDate = {};
   pending.forEach(r => (r.dates || []).forEach(d => {
     pendingByDate[d] = pendingByDate[d] || []; pendingByDate[d].push(r);
@@ -770,7 +781,13 @@ export default function App(){
       <main className="max-w-5xl mx-auto px-4 py-4 space-y-4">
         {tab === 'notifications' && (
           <div className="space-y-2">
-            <h2 className="text-lg font-bold">Pending requests</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold mr-auto">Pending requests</h2>
+              <select value={filterPendingColleague} onChange={e=>setFilterPendingColleague(e.target.value)} className="text-sm rounded-lg border border-emerald-700 bg-emerald-950 px-2 py-1.5">
+                <option value="all">All colleagues</option>
+                {allColleagues.map(name => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </div>
             {pending.length === 0 && <p className="text-sm text-emerald-400">No pending requests right now.</p>}
             {pending.map(r => (
               <div key={r.id} className="rounded-xl border border-emerald-800 bg-emerald-900/50 p-3 flex items-center justify-between gap-3 flex-wrap">
