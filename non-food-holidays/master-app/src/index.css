@@ -728,3 +728,8 @@ body,
 #root {
   background: #0D9478 !important;
 }
+
+/* MASTER MAIN BACKGROUND - #0D9478 */
+.min-h-screen.bg-emerald-950 {
+  background: #0D9478 !important;
+}
