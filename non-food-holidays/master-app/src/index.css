@@ -177,7 +177,7 @@ select {
 
 /* Main page */
 body {
-  background: #01251a !important;
+  background: #087052 !important;
   color: #ffffff !important;
 }
 
@@ -204,34 +204,34 @@ header p {
 
 /* Calendar icon */
 header .bg-emerald-500 {
-  background: #08c993 !important;
+  background: #27E0AE !important;
   color: #001b13 !important;
 }
 
 /* Navigation buttons */
 header button {
-  background: #003b2b !important;
+  background: #0A7056 !important;
   color: #ffffff !important;
-  border-color: #003b2b !important;
+  border-color: #0A7056 !important;
   font-weight: 700 !important;
 }
 
 header button:hover {
-  background: #07513d !important;
+  background: #0A8B6B !important;
   color: #ffffff !important;
 }
 
 /* Selected Calendar navigation button */
 header button.bg-emerald-500,
 header button[class*="bg-emerald-500"] {
-  background: #11c994 !important;
+  background: #35E2B1 !important;
   color: #001b13 !important;
-  border-color: #11c994 !important;
+  border-color: #35E2B1 !important;
 }
 
 /* Main calendar area */
 main {
-  background: #01251a !important;
+  background: #087052 !important;
 }
 
 /* Month/year heading */
@@ -261,16 +261,16 @@ select option {
 /* Previous / next / Today buttons */
 main button {
   color: #ffffff !important;
-  border-color: #079f78 !important;
+  border-color: #16C69A !important;
 }
 
 main button[class*="bg-emerald-600"] {
-  background: #003b2b !important;
+  background: #0A7056 !important;
   color: #ffffff !important;
 }
 
 main button[class*="bg-emerald-600"]:hover {
-  background: #07513d !important;
+  background: #0A8B6B !important;
 }
 
 /* Calendar weekday header */
@@ -281,32 +281,32 @@ main button[class*="bg-emerald-600"]:hover {
 
 /* Weekday strip */
 [class*="grid-cols-7"][class*="bg-emerald-600"] {
-  background: #079f78 !important;
+  background: #16C69A !important;
   color: #ffffff !important;
   font-weight: 800 !important;
 }
 
 /* Calendar cells */
 [class*="grid-cols-7"] > div {
-  color: #123b2d !important;
+  color: #1C7A5D !important;
 }
 
 /* Actual date numbers */
 [class*="grid-cols-7"] > div:not([class*="bg-emerald-600"]) {
   background: #ffffff !important;
-  color: #123b2d !important;
+  color: #1C7A5D !important;
 }
 
 /* Empty days belonging to previous/next month */
 [class*="grid-cols-7"] > div[class*="bg-emerald-900"] {
-  background: #01251a !important;
+  background: #087052 !important;
   color: #ffffff !important;
 }
 
 /* Make date numbers clearly visible */
 [class*="grid-cols-7"] > div > span,
 [class*="grid-cols-7"] > div > div:first-child {
-  color: #123b2d !important;
+  color: #1C7A5D !important;
   font-weight: 600 !important;
 }
 
@@ -319,7 +319,7 @@ main button[class*="bg-emerald-600"]:hover {
 
 /* Holiday entries */
 [class*="bg-emerald-950"] {
-  background: #003b2b !important;
+  background: #0A7056 !important;
   color: #ffffff !important;
 }
 
@@ -402,7 +402,7 @@ header p {
 /* Calendar icon */
 header .bg-emerald-500,
 header [class*="bg-emerald-500"] {
-  background: #08c993 !important;
+  background: #27E0AE !important;
   color: #00261a !important;
 }
 
@@ -411,14 +411,14 @@ header [class*="bg-emerald-500"] {
    ========================================================= */
 
 header button {
-  background: #003b2b !important;
+  background: #0A7056 !important;
   color: #ffffff !important;
-  border-color: #003b2b !important;
+  border-color: #0A7056 !important;
   font-weight: 700 !important;
 }
 
 header button:hover {
-  background: #07513d !important;
+  background: #0A8B6B !important;
   color: #ffffff !important;
 }
 
@@ -449,7 +449,7 @@ main select,
 select {
   background: #ffffff !important;
   color: #111111 !important;
-  border: 1px solid #079f78 !important;
+  border: 1px solid #16C69A !important;
   font-weight: 600 !important;
   opacity: 1 !important;
   -webkit-text-fill-color: #111111 !important;
@@ -468,13 +468,13 @@ main button {
 }
 
 main button[class*="bg-emerald-600"] {
-  background: #003b2b !important;
+  background: #0A7056 !important;
   color: #ffffff !important;
-  border-color: #079f78 !important;
+  border-color: #16C69A !important;
 }
 
 main button[class*="bg-emerald-600"]:hover {
-  background: #07513d !important;
+  background: #0A8B6B !important;
   color: #ffffff !important;
 }
 
@@ -500,14 +500,14 @@ main button[class*="bg-emerald-600"]:hover {
 /* Normal calendar cells */
 [class*="grid-cols-7"] > div {
   background: #ffffff !important;
-  color: #123b2d !important;
+  color: #1C7A5D !important;
   border-color: #8fc7b8 !important;
 }
 
 /* Date numbers */
 [class*="grid-cols-7"] > div > span,
 [class*="grid-cols-7"] > div > div:first-child {
-  color: #123b2d !important;
+  color: #1C7A5D !important;
   font-weight: 600 !important;
 }
 
@@ -515,7 +515,7 @@ main button[class*="bg-emerald-600"]:hover {
 [class*="grid-cols-7"] > div[class*="bg-emerald-900"] {
   background: #01261a !important;
   color: #ffffff !important;
-  border-color: #07513d !important;
+  border-color: #0A8B6B !important;
 }
 
 /* =========================================================
@@ -549,7 +549,7 @@ main button[class*="bg-emerald-600"]:hover {
    ========================================================= */
 
 [class*="grid-cols-7"] {
-  border-color: #079f78 !important;
+  border-color: #16C69A !important;
 }
 
 /* =========================================================
@@ -664,7 +664,7 @@ main select {
   background: #ffffff !important;
   color: #111111 !important;
   -webkit-text-fill-color: #111111 !important;
-  border: 1px solid #079f78 !important;
+  border: 1px solid #16C69A !important;
 }
 
 /* Calendar navigation */
@@ -675,7 +675,7 @@ main button {
 main button[class*="bg-emerald-600"] {
   background: #00392a !important;
   color: #ffffff !important;
-  border: 1px solid #079f78 !important;
+  border: 1px solid #16C69A !important;
 }
 
 /* Weekday bar */
@@ -688,7 +688,7 @@ main button[class*="bg-emerald-600"] {
 /* White calendar cells */
 [class*="grid-cols-7"] > div {
   background: #ffffff !important;
-  color: #123b2d !important;
+  color: #1C7A5D !important;
   border-color: #8fc7b8 !important;
 }
 
@@ -701,7 +701,7 @@ main button[class*="bg-emerald-600"] {
 /* Date numbers */
 [class*="grid-cols-7"] > div > span,
 [class*="grid-cols-7"] > div > div:first-child {
-  color: #123b2d !important;
+  color: #1C7A5D !important;
 }
 
 /* Today */
