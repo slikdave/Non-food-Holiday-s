@@ -33,7 +33,7 @@ function buildMonthMatrix(year, month){
   for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
   return weeks;
 }
-function fmtShort(iso){ const d = fromISO(iso); return `${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getDate()} ${String(d.getFullYear()).slice(-2)}`; }
+function fmtShort(iso){ const d = fromISO(iso); return `${String(d.getDate()).padStart(2,'0')} ${MONTH_NAMES[d.getMonth()].slice(0,3)} ${String(d.getFullYear()).slice(-2)}`; }
 function formatDatesSummary(dates){
   if(!dates || dates.length===0) return '';
   const sorted = [...dates].sort();
